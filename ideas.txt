@@ -1,2 +1,3 @@
 - List all factors of given number efficiently
 - my tee
+- Sieve of Eratosthenes
