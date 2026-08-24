@@ -1,8 +1,12 @@
+/**
+ * @file mtb.h
+**/
 #ifndef MTB_H
 #define MTB_H
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /* @defgroup Console
  * @{
@@ -22,6 +26,15 @@
  */
 int mtb_read_stdin(char *buffer, size_t buf_size, int terminator);
 
+struct mtb_cl_option {
+	const char *name;
+	const char *value;
+	bool has_value;
+	bool is_set;
+};
+
+const char *mtb_parse_clargs(int argc, char *argv[], struct mtb_cl_option opts[], size_t num_opts, const char *rests[], int *rests_count);
+	
 /** @} */
 
 /* @defgroup Utils
