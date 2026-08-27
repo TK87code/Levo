@@ -1,4 +1,7 @@
 - List all factors of given number efficiently
 - my tee
 - Sieve of Eratosthenes
-- mtb_getopt()
+- code_todo
+- simple todo app
+- check_std
+
