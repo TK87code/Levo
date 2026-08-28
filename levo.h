@@ -1,9 +1,9 @@
 /**
- * @file sne.h
+ * @file lev.h
  * @brief simple n easy library.
  */
-#ifndef SNE_H 
-#define SNE_H 
+#ifndef LEVO_H 
+#define LEVO_H 
 
 #ifdef __cplusplus
 extern "C" {
@@ -12,52 +12,53 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 /**************************************************************************************************************
- * @defgroup String String Utilities(sne_str)
+ * @defgroup String String Utilities(lev_str)
  * @{
  */
 	
-// todo document
-bool sne_str_match(const char *pattern, const char *str);
+//TODO document this
+bool lev_str_match(const char *pattern, const char *str);
 
 /******************************************************************************************************** @} */
 
 
 /***************************************************************************************************************
- * @defgroup Commandline Command line Utilities(sne_cli)
+ * @defgroup Command-line Command line Utilities(lev_cli)
  * @{
  */
 
 /**
- * @brief command-line option definition and parse result container.
+ * @brief Command-line option definition and parse result container.
  */
-struct sne_cl_option {
-	const char *name;       /**< option flag string (e.g. "-f", "--file"). */
-	const char *value;      /**< pointer to the parsed value argument, or null. */
-	bool        has_value;  /**< set to true if the option requires a trailing value. */
-	bool        is_set;     /**< true if the option was matched during parsing. */
+struct lev_cli_option {
+	const char *name;       /**< Option flag string (e.g. "-f", "--file"). */
+	const char *value;      /**< Pointer to the parsed value argument, or null. */
+	bool        has_value;  /**< Set to true if the option requires a trailing value. */
+	bool        is_set;     /**< True if the option was matched during parsing. */
 };
 
 /**
- * @brief  parse command-line arguments into options and positional arguments.
+ * @brief  Parses command-line arguments into options and positional arguments.
  *
- * @param  argc        argument count from main().
- * @param  argv        argument vector from main().
- * @param  opts        array of option definitions (will be updated with results).
- * @param  num_opts    number of elements in the opts array.
- * @param  rests       array to receive pointers to positional (non-option) arguments.
- * @param  rests_count pointer to an int that will receive the count of positional arguments.
+ * @param  argc        Argument count from main().
+ * @param  argv        Argument vector from main().
+ * @param  opts        Array of option definitions (will be updated with results).
+ * @param  num_opts    Number of elements in the opts array.
+ * @param  rests       Array to receive pointers to positional (non-option) arguments.
+ * @param  rests_count Pointer to an int that will receive the count of positional arguments.
  *
  * @return null on success, or a pointer to the unrecognized/invalid argument string.
  */
-const char *sne_cli_parse(int argc, char *argv[], struct sne_cl_option opts[], size_t num_opts, const char *rests[], int *rests_count);
+const char *lev_cli_parse(int argc, char *argv[], struct lev_cli_option opts[], size_t num_opts, const char *rests[], int *rests_count);
 
 /*********************************************************************************************************** @} */
 
 
 /***************************************************************************************************************
- * @defgroup OS OS Utilities(sne_os)
+ * @defgroup OS OS Utilities(lev_os)
  * @{ 
  */
 
@@ -69,13 +70,29 @@ const char *sne_cli_parse(int argc, char *argv[], struct sne_cl_option opts[], s
  *
  * @return Pointer to the buffer that stores the path when succeeded, otherwise NULL. 
  */
-char *sne_os_getcwd(char* out_buf, size_t size);
+char *lev_os_getcwd(char* out_buf, size_t size);
 
 /*********************************************************************************************************** @} */
 
+/***************************************************************************************************************
+ * @defgroup Terminal Terminal Utilities(lev_term)
+ * @{ 
+ */
+
+/**
+ * @brief Enable ANSI escape sequence in the console.
+ * @note  This is required for Windows compatibility. On Linux/macOS, this function is a no-op and can be omitted.
+ *
+ * @retval 0 Success
+ * @retval -1 Failed in GetStdHandle() of win32 API.
+ * @retval -2 Failed in GetConsoleMode() of win32 API. 
+ */
+int lev_term_enable_ansiesc(void);
+
+/*********************************************************************************************************** @} */
 
 /***************************************************************************************************************
- * @defgroup General General Utilities(sne)
+ * @defgroup General General Utilities(lev)
  * @{ 
  */
 
@@ -88,7 +105,7 @@ char *sne_os_getcwd(char* out_buf, size_t size);
  *
  * @return A pseudo-random integer between min and max (inclusive).
  */
-int sne_rand(uint32_t *seed, int min, int max);
+int lev_rand(uint32_t *seed, int min, int max);
 
 /**
  * @brief  Read stdin until a specified terminator or EOF.
@@ -102,7 +119,10 @@ int sne_rand(uint32_t *seed, int min, int max);
  * @retval -2 Buffer overflow (buffer filled before terminator or EOF was encountered).
  * @retval -3 Stream ended before reading any character, or an I/O error occurred.
  */
-int sne_read_stdin(char *out_buf, size_t buf_size, int terminator);
+int lev_read_stdin(char *out_buf, size_t buf_size, int terminator);
+
+//TODO Document it
+void lev_printf_color(int color, const char *fmt, ...);
 
 /*********************************************************************************************************** @} */
 
@@ -110,5 +130,5 @@ int sne_read_stdin(char *out_buf, size_t buf_size, int terminator);
 }
 #endif // __cplusplus
 
-#endif // SNE_H 
+#endif // LEVO_H 
 

@@ -1,4 +1,4 @@
-#include "mtb.h"
+#include "levo.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 
 	uint32_t seed = (uint32_t)time(NULL);
 	
-	int n = mtb_rand(&seed, 1, max);
+	int n = lev_rand(&seed, 1, max);
 	printf("%d\n", n);
 
 	return 0;
