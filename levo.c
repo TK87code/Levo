@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdarg.h>
+#include <ctype.h>
 
 bool lev_str_match(const char *pattern, const char *str)
 {
@@ -25,6 +26,30 @@ bool lev_str_match(const char *pattern, const char *str)
 		return lev_str_match(pattern + 1, str + 1);	
 	else
 		return false;
+}
+
+void lev_str_tolower(char *text) 
+{
+	for (size_t i = 0; text[i] != '\0'; i++) {
+		unsigned char c = (unsigned char)text[i];
+		if (isalpha(c))
+			text[i] = (char)tolower(c);
+	}
+}
+
+void lev_str_alpha_only(char *text)
+{
+	int head = 0;
+	int tail = 0;
+	while (text[head] != '\0') {
+		unsigned char c = (unsigned char)text[head];
+		if (isalpha(c)) {
+			text[tail] = text[head];
+			tail++;
+		}
+		head++;
+	}
+	text[tail] = '\0';
 }
 
 const char *lev_cli_parse(int argc, char *argv[], struct lev_cli_option opts[], size_t num_opts, const char *rests[], int *rests_count)

@@ -10,6 +10,8 @@
 ===============================================================================
   [String Utilities]
   lev_str_match()           - Pattern matching with '*' and '?'
+  lev_str_tolower()	    - Change string to all lower case
+  lev_str_alpha_only()      - Strip any character other than alphabets
 
   [Command-line Utilities]
   lev_cli_parse()           - Parse command-line options and arguments
@@ -47,6 +49,12 @@ extern "C" {
 bool lev_str_match(const char *pattern, const char *str);
 // Matches a string against a pattern using '*' (any sequence) and '?' (any single character).
 // Returns true if matched, false otherwise.
+
+void lev_str_tolower(char *text); 
+//TODO document me
+
+void lev_str_alpha_only(char *text);
+//TODO document me
 
 // ============================================================================
 // Command-line Utilities
