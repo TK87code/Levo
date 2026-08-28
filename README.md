@@ -2,7 +2,7 @@
 
 A modest, drop-in C utility library designed for writing small-scale programs and tools with zero friction.
 
-## About Levo
+## Features
 
 It is designed to be as effortless as possible, so it's suitable to quickly code your small-scale program as soon as it popped in your head.
 
