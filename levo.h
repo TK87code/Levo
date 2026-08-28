@@ -1,7 +1,33 @@
-/**
- * @file lev.h
- * @brief simple n easy library.
- */
+/*
+===============================================================================
+  Levo - Frictionless C utility library
+===============================================================================
+  No external dependencies, no complex compiler flags.
+  Just copy levo.c and levo.h into your project and compile.
+
+===============================================================================
+  QUICK CHEAT SHEET
+===============================================================================
+  [String Utilities]
+  lev_str_match()           - Pattern matching with '*' and '?'
+
+  [Command-line Utilities]
+  lev_cli_parse()           - Parse command-line options and arguments
+
+  [OS Utilities]
+  lev_os_getcwd()           - Get current working directory
+
+  [Terminal Utilities]
+  lev_term_enable_ansiesc() - Enable ANSI escape sequences (Windows)
+
+  [General Utilities]
+  lev_rand()                - Generate a pseudo-random integer
+  lev_read_stdin()          - Read stdin until a specified terminator or EOF
+  lev_printf_color()        - Print colored text to standard output
+
+===============================================================================
+*/
+
 #ifndef LEVO_H 
 #define LEVO_H 
 
@@ -14,121 +40,70 @@ extern "C" {
 #include <stdbool.h>
 #include <stdarg.h>
 
-/**************************************************************************************************************
- * @defgroup String String Utilities(lev_str)
- * @{
- */
-	
-//TODO document this
+// ============================================================================
+// String Utilities
+// ============================================================================
+
 bool lev_str_match(const char *pattern, const char *str);
+// Matches a string against a pattern using '*' (any sequence) and '?' (any single character).
+// Returns true if matched, false otherwise.
 
-/******************************************************************************************************** @} */
+// ============================================================================
+// Command-line Utilities
+// ============================================================================
 
-
-/***************************************************************************************************************
- * @defgroup Command-line Command line Utilities(lev_cli)
- * @{
- */
-
-/**
- * @brief Command-line option definition and parse result container.
- */
+// Command-line option definition and parse result container.
 struct lev_cli_option {
-	const char *name;       /**< Option flag string (e.g. "-f", "--file"). */
-	const char *value;      /**< Pointer to the parsed value argument, or null. */
-	bool        has_value;  /**< Set to true if the option requires a trailing value. */
-	bool        is_set;     /**< True if the option was matched during parsing. */
+	const char *name;       // option flag string (e.g. "-f", "--file")
+	const char *value;      // pointer to the parsed value argument, or NULL
+	bool        has_value;  // set to true if the option requires a trailing value
+	bool        is_set;     // true if the option was matched during parsing
 };
 
-/**
- * @brief  Parses command-line arguments into options and positional arguments.
- *
- * @param  argc        Argument count from main().
- * @param  argv        Argument vector from main().
- * @param  opts        Array of option definitions (will be updated with results).
- * @param  num_opts    Number of elements in the opts array.
- * @param  rests       Array to receive pointers to positional (non-option) arguments.
- * @param  rests_count Pointer to an int that will receive the count of positional arguments.
- *
- * @return null on success, or a pointer to the unrecognized/invalid argument string.
- */
-const char *lev_cli_parse(int argc, char *argv[], struct lev_cli_option opts[], size_t num_opts, const char *rests[], int *rests_count);
+const char *lev_cli_parse(int argc, char *argv[], 
+			  struct lev_cli_option opts[], // array of option definitions
+			  size_t num_opts,              // number of elements in 'opts'
+			  const char *rests[],          // array to receive positional arguments
+			  int *rests_count);            // count of positional arguments
+// Parses command-line arguments into options and positional arguments.
+// Returns NULL on success, or a pointer to the unrecognized/invalid argument string.
 
-/*********************************************************************************************************** @} */
+// ============================================================================
+// OS Utilities
+// ============================================================================
 
-
-/***************************************************************************************************************
- * @defgroup OS OS Utilities(lev_os)
- * @{ 
- */
-
-/**
- * @brief  Get current working directly. Can be used for both UNIX and Windows
- *
- * @param  buffer Pointer to the buffer to store path. 
- * @param  size Size of the buffer.
- *
- * @return Pointer to the buffer that stores the path when succeeded, otherwise NULL. 
- */
 char *lev_os_getcwd(char* out_buf, size_t size);
+// Gets current working directory. Works on both UNIX and Windows.
+// Returns pointer to 'out_buf' on success, otherwise NULL.
 
-/*********************************************************************************************************** @} */
+// ============================================================================
+// Terminal Utilities
+// ============================================================================
 
-/***************************************************************************************************************
- * @defgroup Terminal Terminal Utilities(lev_term)
- * @{ 
- */
-
-/**
- * @brief Enable ANSI escape sequence in the console.
- * @note  This is required for Windows compatibility. On Linux/macOS, this function is a no-op and can be omitted.
- *
- * @retval 0 Success
- * @retval -1 Failed in GetStdHandle() of win32 API.
- * @retval -2 Failed in GetConsoleMode() of win32 API. 
- */
 int lev_term_enable_ansiesc(void);
+// Enables ANSI escape sequence in the console. 
+// Required for Windows compatibility. On Linux/macOS, it's a safe no-op.
+// Returns 0 on success, -1/-2 on win32 API failures.
 
-/*********************************************************************************************************** @} */
+// ============================================================================
+// General Utilities
+// ============================================================================
 
-/***************************************************************************************************************
- * @defgroup General General Utilities(lev)
- * @{ 
- */
-
-/**
- * @brief  Generate a pseudo-random integer in the range [min, max] using XorShift32.
- *
- * @param  seed Pointer to a 32-bit seed state (updated on each call).
- * @param  min  Minimum number (inclusive).
- * @param  max  Maximum number (inclusive).
- *
- * @return A pseudo-random integer between min and max (inclusive).
- */
 int lev_rand(uint32_t *seed, int min, int max);
+// Generates a pseudo-random integer in the range [min, max] (inclusive).
+// Uses XorShift32 internally. Updates the 32-bit 'seed' state on each call.
 
-/**
- * @brief  Read stdin until a specified terminator or EOF.
- *
- * @param  out_buf    A buffer to store the null-terminated string.
- * @param  buf_size   Total capacity of out_buf in bytes.
- * @param  terminator Delimiter character to stop reading (e.g. '\n').
- * 
- * @return The number of bytes read (excluding the null terminator).
- * @retval -1 Invalid parameter (e.g. out_buf is NULL or buf_size is 0).
- * @retval -2 Buffer overflow (buffer filled before terminator or EOF was encountered).
- * @retval -3 Stream ended before reading any character, or an I/O error occurred.
- */
 int lev_read_stdin(char *out_buf, size_t buf_size, int terminator);
+// Reads stdin into 'out_buf' until 'terminator' char or EOF is encountered.
+// Returns the number of bytes read (excluding null terminator).
+// Returns negative values on error (-1: invalid param, -2: overflow, -3: EOF/error).
 
-//TODO Document it
 void lev_printf_color(int color, const char *fmt, ...);
-
-/*********************************************************************************************************** @} */
+// Prints colored text to standard output using ANSI 256-color codes.
+// 'color' should be in the range 0-255.
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
-#endif // LEVO_H 
-
+#endif // LEVO_H
