@@ -1,34 +1,31 @@
-/*
-===============================================================================
-  Levo - Frictionless C utility library
-===============================================================================
-  No external dependencies, no complex compiler flags.
-  Just copy levo.c and levo.h into your project and compile.
-
-===============================================================================
-  QUICK CHEAT SHEET
-===============================================================================
-  [String Utilities]
-  lev_str_match()           - Pattern matching with '*' and '?'
-  lev_str_tolower()	    - Change string to all lower case
-  lev_str_alpha_only()      - Strip any character other than alphabets
-
-  [Command-line Utilities]
-  lev_cli_parse()           - Parse command-line options and arguments
-
-  [OS Utilities]
-  lev_os_getcwd()           - Get current working directory
-
-  [Terminal Utilities]
-  lev_term_enable_ansiesc() - Enable ANSI escape sequences (Windows)
-
-  [General Utilities]
-  lev_rand()                - Generate a pseudo-random integer
-  lev_read_stdin()          - Read stdin until a specified terminator or EOF
-  lev_printf_color()        - Print colored text to standard output
-
-===============================================================================
-*/
+//===============================================================================
+//  Levo - Frictionless C utility library v1.000
+//===============================================================================
+//  No external dependencies, no complex compiler flags.
+//  Just copy levo.c and levo.h into your project and compile.
+//===============================================================================
+//  QUICK CHEAT SHEET
+//===============================================================================
+//  [String Utilities]
+//  lev_str_match()           - Pattern matching with '*' and '?'
+//  lev_str_tolower()	    - Change string to all lower case
+//  lev_str_alpha_only()      - Strip any character other than alphabets
+//
+//  [Command-line Utilities]
+//  lev_cli_parse()           - Parse command-line options and arguments
+//
+//  [OS Utilities]
+//  lev_os_getcwd()           - Get current working directory
+//
+//  [Terminal Utilities]
+//  lev_term_enable_ansiesc() - Enable ANSI escape sequences (for Windows)
+//
+//  [General Utilities]
+//  lev_rand()                - Generate a pseudo-random integer
+//  lev_read_stdin()          - Read stdin until a specified terminator or EOF
+//  lev_printf_color()        - Print colored text to standard output
+//
+//===============================================================================
 
 #ifndef LEVO_H 
 #define LEVO_H 
@@ -51,10 +48,10 @@ bool lev_str_match(const char *pattern, const char *str);
 // Returns true if matched, false otherwise.
 
 void lev_str_tolower(char *text); 
-//TODO document me
+// REPLACE given string to all lowercase.
 
 void lev_str_alpha_only(char *text);
-//TODO document me
+// Strip all characters other than alphabets from the given string and REPLACE it. 
 
 // ============================================================================
 // Command-line Utilities

@@ -52,7 +52,8 @@ void lev_str_alpha_only(char *text)
 	text[tail] = '\0';
 }
 
-const char *lev_cli_parse(int argc, char *argv[], struct lev_cli_option opts[], size_t num_opts, const char *rests[], int *rests_count)
+const char *lev_cli_parse(int argc, char *argv[], struct lev_cli_option opts[], 
+			  size_t num_opts, const char *rests[], int *rests_count)
 {
 	if (!argv || argc < 1 || !rests || !rests_count)
 		return "";
