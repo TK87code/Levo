@@ -1,5 +1,6 @@
 quick.c
 installq.sh
+publishq.sh
 *.txt
 a
 published/
