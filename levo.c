@@ -28,28 +28,28 @@ bool lev_str_match(const char *pattern, const char *str)
 		return false;
 }
 
-void lev_str_tolower(char *text) 
+void lev_str_tolower(char *str) 
 {
-	for (size_t i = 0; text[i] != '\0'; i++) {
-		unsigned char c = (unsigned char)text[i];
+	for (size_t i = 0; str[i] != '\0'; i++) {
+		unsigned char c = (unsigned char)str[i];
 		if (isalpha(c))
-			text[i] = (char)tolower(c);
+			str[i] = (char)tolower(c);
 	}
 }
 
-void lev_str_alpha_only(char *text)
+void lev_str_alpha_only(char *str)
 {
 	int head = 0;
 	int tail = 0;
-	while (text[head] != '\0') {
-		unsigned char c = (unsigned char)text[head];
+	while (str[head] != '\0') {
+		unsigned char c = (unsigned char)str[head];
 		if (isalpha(c)) {
-			text[tail] = text[head];
+			str[tail] = str[head];
 			tail++;
 		}
 		head++;
 	}
-	text[tail] = '\0';
+	str[tail] = '\0';
 }
 
 size_t lev_file_size(const char *path)
@@ -68,19 +68,19 @@ size_t lev_file_size(const char *path)
 	return (size_t) s;
 }
 
-int lev_file_read(const char *path, char *buf, size_t size)
+int lev_file_read(const char *path, void *out_buffer, size_t buffer_size)
 {
-	if (!path || !buf || size == 0)
+	if (!path || !out_buffer || buffer_size == 0)
 		return -1;
 
 	FILE *fp = fopen(path, "rb");
 	if (!fp)
 		return -2;
 
-	size_t read_bytes = fread(buf, 1, size, fp);
+	size_t read_bytes = fread(out_buffer, 1, buffer_size, fp);
 	fclose(fp);
 
-	if (read_bytes != size)
+	if (read_bytes != buffer_size)
 		return -3;
 	
 	return 0;
@@ -175,20 +175,20 @@ int lev_rand(uint32_t *seed, int min, int max)
 	return (int)((int64_t)min + (int64_t)offset);
 }
 
-int lev_read_stdin(char *out_buf, size_t buf_size, int terminator)
+int lev_read_stdin(char *out_buffer, size_t buffer_size, int terminator)
 {
-	if (!out_buf || buf_size == 0)
+	if (!out_buffer || buffer_size == 0)
 		return -1;
 
 	size_t i = 0;
 	int c = EOF;
 
-	while (i + 1 < buf_size) {
+	while (i + 1 < buffer_size) {
 		c = getchar();
 
 		if (c == EOF) {
 			if (i == 0) {
-				out_buf[0] = '\0';
+				out_buffer[0] = '\0';
 				return -3;
 			}
 			break;
@@ -197,11 +197,11 @@ int lev_read_stdin(char *out_buf, size_t buf_size, int terminator)
 		if (c == terminator)
 			break;
 
-		out_buf[i++] = (char)c;
+		out_buffer[i++] = (char)c;
 	}
-	out_buf[i] = '\0';
+	out_buffer[i] = '\0';
 
-	if (i + 1 == buf_size && c != terminator && c != EOF)
+	if (i + 1 == buffer_size && c != terminator && c != EOF)
 		return -2;
 
 	return (int)i;
