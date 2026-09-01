@@ -9,7 +9,7 @@ It is designed to be as effortless as possible, so it's suitable to quickly code
 - No external dependencies. Just copy `levo.c` and `levo.h` into your project folder.
 - You don't need to figure out complicated linker flags or compiler options.
 - Works on both Linux and Windows out of the box. 
-- Written in C17.
+- Written in pure C99.
 - Levo is not aimed at building massive, high-performance engines. It's a toolbox for when you want to quickly whip up a CLI tool, a tiny app, or a personal script etc.
 
 ## Getting Started

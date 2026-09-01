@@ -1,7 +1,7 @@
-quick.c
-sdlquick.c
-installq.sh
-publishq.sh
-*.txt
-a
-published/
+*
+!LICENSE
+!README.md
+!levo.c
+!levo.h
+!/sandbox/**
+!build.sh
