@@ -52,6 +52,40 @@ void lev_str_alpha_only(char *text)
 	text[tail] = '\0';
 }
 
+size_t lev_file_size(const char *path)
+{
+	FILE *fp = fopen(path, "rb");
+	if (!fp)
+		return 0;
+
+	fseek(fp, 0, SEEK_END);
+	long s = ftell(fp);
+	fclose(fp);
+	
+	if (s < 0)
+		return 0;
+	
+	return (size_t) s;
+}
+
+int lev_file_read(const char *path, char *buf, size_t size)
+{
+	if (!path || !buf || size == 0)
+		return -1;
+
+	FILE *fp = fopen(path, "rb");
+	if (!fp)
+		return -2;
+
+	size_t read_bytes = fread(buf, 1, size, fp);
+	fclose(fp);
+
+	if (read_bytes != size)
+		return -3;
+	
+	return 0;
+}
+
 const char *lev_cli_parse(int argc, char *argv[], struct lev_cli_option opts[], 
 			  size_t num_opts, const char *rests[], int *rests_count)
 {
@@ -112,65 +146,6 @@ const char *lev_cli_parse(int argc, char *argv[], struct lev_cli_option opts[],
 	rests[*rests_count] = NULL;
 
 	return NULL;
-}
-
-#if defined(_WIN32) || defined(_WIN64)
-	#include <direct.h>
-	#define _lev_get_current_dir _getcwd
-#else
-	#include <unistd.h>
-	#define _lev_get_current_dir getcwd
-#endif //defined(_WIN32) || defined(_WIN64)
-
-char *lev_os_getcwd(char* out_buf, size_t size)
-{
-	return _lev_get_current_dir(out_buf, size);
-}
-
-#if defined(_WIN32) || defined(_WIN64)
-	#include <windows.h>
-	int lev_term_enable_ansiesc(void)
-	{
-		HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
-		if (handle == INVALID_HANDLE_VALUE) 
-			return -1;
-
-		DWORD mode = 0; 
-		if (!GetConsoleMode(handle, &mode))
-			return -2;
-
-		// ENABLE_VIRTUAL_TERMINAL_PROCESSING (0x0004)
-		mode |= 0x0004;
-		SetConsoleMode(handle, mode);
-
-		return 0;
-	}
-
-#else
-	int lev_term_enable_ansiesc(void) 
-	{
-		return 0;	
-	}
-#endif //defined(_WIN32) || defined(_WIN64)
-
-void lev_printf_color(int color, const char *fmt, ...)
-{
-	if (color < 0)
-		color = 0;
-	if (color > 255)
-		color = 255;
-
-	printf("\x1b[38;5;%dm", color);
-
-	char buf[1024] = {0};
-	va_list ap;
-	va_start(ap, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, ap);
-	va_end(ap);
-
-	printf("%s",buf);
-	printf("\x1b[0m");
-	fflush(stdout);
 }
 
 int lev_rand(uint32_t *seed, int min, int max)

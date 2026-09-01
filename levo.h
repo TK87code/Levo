@@ -2,28 +2,25 @@
 //  Levo - Frictionless C utility library v1.000
 //===============================================================================
 //  No external dependencies, no complex compiler flags.
+//  This library relies exclusively on C99 standard library functions.
 //  Just copy levo.c and levo.h into your project and compile.
 //===============================================================================
 //  QUICK CHEAT SHEET
 //===============================================================================
 //  [String Utilities]
-//  lev_str_match()           - Pattern matching with '*' and '?'
-//  lev_str_tolower()	    - Change string to all lower case
-//  lev_str_alpha_only()      - Strip any character other than alphabets
+//  lev_str_match()           	- Pattern matching with '*' and '?'
+//  lev_str_tolower()	    	- Change string to all lower case
+//  lev_str_alpha_only()      	- Strip any character other than alphabets
+//
+//  [File Utilities]
+//  lev_file_size()	      	- Read file size in bytes
 //
 //  [Command-line Utilities]
-//  lev_cli_parse()           - Parse command-line options and arguments
-//
-//  [OS Utilities]
-//  lev_os_getcwd()           - Get current working directory
-//
-//  [Terminal Utilities]
-//  lev_term_enable_ansiesc() - Enable ANSI escape sequences (for Windows)
+//  lev_cli_parse()           	- Parse command-line options and arguments
 //
 //  [General Utilities]
-//  lev_rand()                - Generate a pseudo-random integer
-//  lev_read_stdin()          - Read stdin until a specified terminator or EOF
-//  lev_printf_color()        - Print colored text to standard output
+//  lev_rand()                	- Generate a pseudo-random integer
+//  lev_read_stdin()          	- Read stdin until a specified terminator or EOF
 //
 //===============================================================================
 
@@ -54,6 +51,18 @@ void lev_str_alpha_only(char *text);
 // Strip all characters other than alphabets from the given string and REPLACE it. 
 
 // ============================================================================
+// String Utilities
+// ============================================================================
+
+size_t lev_file_size(const char *path);
+// Returns the size of the file in bytes. Returns 0 on failure.
+
+int lev_file_read(const char *path, char *buf, size_t size);
+// Reads specified bytes from the file, and store them to the buffer.
+// Returns 0 on success. 
+// Errors-> -1:invalid parameter -2: Failed to open file -3: Could not read full bytes 
+	
+// ============================================================================
 // Command-line Utilities
 // ============================================================================
 
@@ -74,23 +83,6 @@ const char *lev_cli_parse(int argc, char *argv[],
 // Returns NULL on success, or a pointer to the unrecognized/invalid argument string.
 
 // ============================================================================
-// OS Utilities
-// ============================================================================
-
-char *lev_os_getcwd(char* out_buf, size_t size);
-// Gets current working directory. Works on both UNIX and Windows.
-// Returns pointer to 'out_buf' on success, otherwise NULL.
-
-// ============================================================================
-// Terminal Utilities
-// ============================================================================
-
-int lev_term_enable_ansiesc(void);
-// Enables ANSI escape sequence in the console. 
-// Required for Windows compatibility. On Linux/macOS, it's a safe no-op.
-// Returns 0 on success, -1/-2 on win32 API failures.
-
-// ============================================================================
 // General Utilities
 // ============================================================================
 
@@ -102,10 +94,6 @@ int lev_read_stdin(char *out_buf, size_t buf_size, int terminator);
 // Reads stdin into 'out_buf' until 'terminator' char or EOF is encountered.
 // Returns the number of bytes read (excluding null terminator).
 // Returns negative values on error (-1: invalid param, -2: overflow, -3: EOF/error).
-
-void lev_printf_color(int color, const char *fmt, ...);
-// Prints colored text to standard output using ANSI 256-color codes.
-// 'color' should be in the range 0-255.
 
 #ifdef __cplusplus
 }

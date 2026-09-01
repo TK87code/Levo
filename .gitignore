@@ -1,4 +1,5 @@
 quick.c
+sdlquick.c
 installq.sh
 publishq.sh
 *.txt
