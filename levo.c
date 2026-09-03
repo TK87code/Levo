@@ -6,6 +6,8 @@
 #include <ctype.h>
 
 enum lev_img_formats {
+	LEV_IMGFMT_PBM_ASCII,
+	LEV_IMGFMT_PBM_RAW,
 	LEV_IMGFMT_PGM_ASCII,
 	LEV_IMGFMT_PGM_RAW,
 };
@@ -21,15 +23,20 @@ static int _lev_img_read_magic(FILE *fp)
 		return -1;
 	}
 
-	if (magic[0] == 'P' && magic[1] == '2') 
+	if (magic[0] == 'P' && magic[1] == '1')
+		return LEV_IMGFMT_PBM_ASCII;
+	else if (magic[0] == 'P' && magic[1] == '2') 
 		return LEV_IMGFMT_PGM_ASCII;
+	else if (magic[0] == 'P' && magic[1] == '4')
+		return LEV_IMGFMT_PBM_RAW;
 	else if (magic[0] == 'P' && magic[1] == '5')
 		return LEV_IMGFMT_PGM_RAW;
 	else
 		return LEV_IMG_ERR_HEADER;
 }
 
-static int _lev_img_skip_pgm(FILE *fp)
+// Skip comment and whitespaces in PNM header
+static int _lev_img_skip_pnm(FILE *fp)
 {
 	int c;
 	while(1) {
@@ -52,26 +59,17 @@ static int _lev_img_skip_pgm(FILE *fp)
 	return 0;
 }
 
-static int _lev_img_info_pgm(FILE *fp, size_t *width, size_t *height, size_t *max_val)
+// max_val can be NULL
+static int _lev_img_info_pnm(FILE *fp, size_t *width, size_t *height, size_t *max_val)
 {
-	if (_lev_img_skip_pgm(fp) != 0 || fscanf(fp, "%zu", width) != 1)
+	if (_lev_img_skip_pnm(fp) != 0 || fscanf(fp, "%zu", width) != 1)
 		return -1;	
-	if (_lev_img_skip_pgm(fp) != 0 || fscanf(fp, "%zu", height) != 1)
+	if (_lev_img_skip_pnm(fp) != 0 || fscanf(fp, "%zu", height) != 1)
 		return -1;	
-	if (_lev_img_skip_pgm(fp) != 0 || fscanf(fp, "%zu", max_val) != 1)
+	if (max_val && (_lev_img_skip_pnm(fp) != 0 || fscanf(fp, "%zu", max_val) != 1)) 
 		return -1;	
 
 	(void)fgetc(fp); // dump the last spaces after max_val
-
-	return 0;
-}
-
-static int _lev_img_skip_to_pixel(FILE *fp, size_t *max_val) 
-{
-	fseek(fp, 2, SEEK_SET);
-	size_t dump;
-	if (_lev_img_info_pgm(fp, &dump, &dump, max_val) < 0)
-		return -1;
 
 	return 0;
 }
@@ -105,11 +103,21 @@ int lev_img_info(const char *path, size_t *out_width, size_t *out_height, size_t
 	}
 
 	switch (magic) {
+		case LEV_IMGFMT_PBM_ASCII:
+		case LEV_IMGFMT_PBM_RAW: {
+			fseek(fp, 2, SEEK_SET);
+			if (_lev_img_info_pnm(fp, out_width, out_height, NULL) < 0) {
+				res = LEV_IMG_ERR_HEADER;
+				goto cleanup;
+			}	
+			*out_bytes_per_pixel = 1;
+		}break;
+
 		case LEV_IMGFMT_PGM_ASCII: 
 		case LEV_IMGFMT_PGM_RAW: {
 			fseek(fp, 2, SEEK_SET);
 			size_t max_val = 0;
-			if (_lev_img_info_pgm(fp, out_width, out_height, &max_val) < 0) {
+			if (_lev_img_info_pnm(fp, out_width, out_height, &max_val) < 0) {
 				res = LEV_IMG_ERR_HEADER;
 				goto cleanup;
 			}
@@ -130,6 +138,7 @@ cleanup:
 	return res;
 }
 
+//TODO Channel conversion
 int lev_img_load(const char* path, void *out_pixels, size_t buffer_size)
 {
 	if (!path || !out_pixels || buffer_size == 0)
@@ -143,17 +152,55 @@ int lev_img_load(const char* path, void *out_pixels, size_t buffer_size)
 		goto cleanup;
 	}
 
-	int magic = _lev_img_read_magic(fp);
-	if (magic < 0) {
+	int fmt = _lev_img_read_magic(fp);
+	if (fmt < 0) {
 		res = LEV_IMG_ERR_HEADER;
 		goto cleanup;
 	}
 	
-	switch (magic) {
+	switch (fmt) {
+		case LEV_IMGFMT_PBM_RAW: {
+			fseek(fp, 2, SEEK_SET);
+			size_t width, height;
+			if (_lev_img_info_pnm(fp, &width, &height, NULL) < 0) {
+				res = LEV_IMG_ERR_HEADER;
+				goto cleanup;
+			}
+
+			//REF: https://netpbm.sourceforge.net/doc/pbm.html	
+			//pbm's 8 pixel is packed to 1byte since it's value is 1 or 0.
+			//The order of the pixels is left to right. The order of their storage within each file byte is most significant bit to least significant bit. 
+			// have to ignore remaining bits once this count reached image width.
+			uint8_t *pixels = (uint8_t *) out_pixels;
+			size_t out_idx = 0;
+			int c = 0;
+			for (size_t y = 0; y < height; y++) {
+				for (size_t x = 0; x < width; x += 8) {
+					c = fgetc(fp);
+					if (c == EOF) {
+						res = LEV_ERR_READ;
+						goto cleanup;
+					}
+
+					uint8_t file_pixel = (uint8_t)c; 
+					for (int i = 7; i >= 0; i--) {
+						if (x + (8 - (i + 1)) >= width) {
+							break;
+						}
+						uint8_t real_pixel = (file_pixel >> i) & 0x01;
+						pixels[out_idx++] = (real_pixel == 1) ? 0 : 255;
+					}
+				}
+			}
+			//TODO unpack and store	
+			
+		} break;
+
 		case LEV_IMGFMT_PGM_RAW: {
-			size_t max_val;
-			if (_lev_img_skip_to_pixel(fp, &max_val) < 0) {
-				res = LEV_ERR_READ;
+			fseek(fp, 2, SEEK_SET);
+			size_t max_val, dump;
+			if (_lev_img_info_pnm(fp, &dump, &dump, &max_val) < 0) {
+				res = LEV_IMG_ERR_HEADER;
 				goto cleanup;
 			}
 
@@ -176,9 +223,10 @@ int lev_img_load(const char* path, void *out_pixels, size_t buffer_size)
 		} break;
 
 		case LEV_IMGFMT_PGM_ASCII: {
-			size_t max_val;
-			if (_lev_img_skip_to_pixel(fp, &max_val) < 0) {
-				res = LEV_ERR_READ;
+			fseek(fp, 2, SEEK_SET);
+			size_t max_val, dump;
+			if (_lev_img_info_pnm(fp, &dump, &dump, &max_val) < 0) {
+				res = LEV_IMG_ERR_HEADER;
 				goto cleanup;
 			}
 

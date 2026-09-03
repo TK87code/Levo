@@ -58,15 +58,15 @@ enum lev_errors {
 // ============================================================================
 
 int lev_img_info(const char *path, size_t *out_width, size_t *out_height, size_t *out_bytes_per_pixel);
-// - Read pixel width, pixel height, bytes-per-pixel data from the header of an image file,
+// Read pixel width, pixel height, bytes-per-pixel data from the header of an image file,
 // 	and store it to given memory address.
-// - Use this to calculate buffer size needed before call lev_img_load() if the size is unknown.
-// - Return 0 on success, or negative error code on failure. 
+// Use this to calculate buffer size needed before call lev_img_load() if the size is unknown.
+// Return 0 on success, or negative error code on failure. 
 
 int lev_img_load(const char* path, void *out_pixels, size_t buffer_size);
-// - [8 bit-per-channel only] Read pixel data from an image file, and store them to given memory address.
-// - Return 0 on success, or negative error code on failure.
-// - Supported format:
+// [8 bit-per-channel only] Read pixel data from an image file, and store them to given memory address.
+// Return 0 on success, or negative error code on failure.
+// Supported format:
 // 	PGM : Both text(P2 or ascii) and binary(P5 or raw). If maxval of each pixel is not 255,
 // 		it will be upscaled to 255 when stored in memory.	
 
@@ -75,25 +75,25 @@ int lev_img_load(const char* path, void *out_pixels, size_t buffer_size);
 // ============================================================================
 
 bool lev_str_match(const char *pattern, const char *str);
-// - Matches a string against a pattern using '*' (any sequence) and '?' (any single character).
-// - Returns true if matched, false otherwise.
+// Matches a string against a pattern using '*' (any sequence) and '?' (any single character).
+// Returns true if matched, false otherwise.
 
 void lev_str_tolower(char *str); 
-// - REPLACE given string to all lowercase.
+// REPLACE given string to all lowercase.
 
 void lev_str_alpha_only(char *str);
-// - Strip all characters other than alphabets from the given string and REPLACE it. 
+// Strip all characters other than alphabets from the given string and REPLACE it. 
 
 // ============================================================================
 // File Utilities
 // ============================================================================
 
 size_t lev_file_size(const char *path);
-// - Returns the size of the file in bytes. Returns 0 on failure.
+// Returns the size of the file in bytes. Returns 0 on failure.
 
 int lev_file_read(const char *path, void *out_buffer, size_t buffer_size);
-// - Reads specified bytes from the file, and store them to the 'out_buffer'
-// - Returns 0 on success, or negative error code on failure.
+// Reads specified bytes from the file, and store them to the 'out_buffer'
+// Returns 0 on success, or negative error code on failure.
 	
 // ============================================================================
 // Command-line Utilities
@@ -124,10 +124,16 @@ int lev_rand(uint32_t *seed, int min, int max);
 // Uses XorShift32 internally. Updates the 32-bit 'seed' state on each call.
 
 int lev_read_stdin(char *out_buffer, size_t buffer_size, int terminator);
-// - Reads stdin into 'out_buffer' until 'terminator' char or EOF is encountered.
-// - Returns the number of bytes read (excluding null terminator), 
+// Reads stdin into 'out_buffer' until 'terminator' char or EOF is encountered.
+// Returns the number of bytes read (excluding null terminator), 
 //	or nagative error code on failure. 
 
+// ============================================================================
+// General Utilities
+// ============================================================================
+
+const char *lev_error_msg(int error_code);
+// Generate error message of error_code.
 #ifdef __cplusplus
 }
 #endif // __cplusplus
