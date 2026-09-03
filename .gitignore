@@ -4,4 +4,6 @@
 !levo.c
 !levo.h
 !/sandbox/
+!/sandbox/*
 !/sandbox/sdl/
+!/sandbox/sdl/*
