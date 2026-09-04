@@ -196,6 +196,25 @@ int lev_img_load(const char* path, void *out_pixels, size_t buffer_size)
 			
 		} break;
 
+		case LEV_IMGFMT_PBM_ASCII: {
+			fseek(fp, 2, SEEK_SET);
+			size_t dump;
+			if (_lev_img_info_pnm(fp, &dump, &dump, NULL) < 0) {
+				res = LEV_IMG_ERR_HEADER;
+				goto cleanup;
+			}
+
+			uint8_t *pixels = (uint8_t *)out_pixels;
+			for (size_t i = 0; i < buffer_size; i++) {
+				unsigned int tmp;
+				if (fscanf(fp, "%u", &tmp) != 1) {
+					res = LEV_ERR_READ;
+					goto cleanup;
+				}
+				pixels[i] = (uint8_t)(tmp == 1) ? 0 : 255;
+			}
+		} break;
+
 		case LEV_IMGFMT_PGM_RAW: {
 			fseek(fp, 2, SEEK_SET);
 			size_t max_val, dump;
@@ -236,10 +255,8 @@ int lev_img_load(const char* path, void *out_pixels, size_t buffer_size)
 			}
 
 			uint8_t *pixels = (uint8_t *)out_pixels;
-
 			for (size_t i = 0; i < buffer_size; i++) {
 				unsigned int temp_val;
-
 				if (fscanf(fp, "%u", &temp_val) != 1) {
 					res = LEV_ERR_READ;	
 					goto cleanup;

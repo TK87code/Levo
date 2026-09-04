@@ -7,27 +7,33 @@
 //===============================================================================
 //  QUICK CHEAT SHEET
 //===============================================================================
-//			[Image Utilities]
+//			[Image Processing] (lev_img_xx)
+//
 //  lev_img_info()		- Get width, height, and bpp of an image
 //  lev_img_load()		- Load 8bit/channel image
 //
-//  			[String Utilities]
+//  			[String Processing] (lev_str_xx)
+//
 //  lev_str_match()           	- Pattern matching with '*' and '?'
 //  lev_str_tolower()	    	- Change string to all lower case
 //  lev_str_alpha_only()      	- Strip any character other than alphabets
 //
-//  			[File Utilities]
+//  			[File Utilities] (lev_file_xx)
+//
 //  lev_file_size()	      	- Read file size in bytes
 //  lev_file_read()		- Read specified bytes of data from a file
 //
-//  			[Command-line Utilities]
+//  			[Command-line Utilities] (lev_cli_xx)
+//
 //  lev_cli_parse()           	- Parse command-line options and arguments
 //
-//  			[General Utilities]
+//  			[General Utilities] (lev_xx)
+//
 //  lev_rand()                	- Generate a pseudo-random integer
 //  lev_read_stdin()          	- Read stdin until a specified terminator or EOF
 //
-//			[Others]
+//			[Others] (lev_xx)
+//			
 //  lev_error_msg()		- Return error message from Levo
 //
 //===============================================================================
