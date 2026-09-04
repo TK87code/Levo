@@ -10,7 +10,7 @@
 //			[Image Processing] (lev_img_xx)
 //
 //  lev_img_info()		- Get width, height, and bpp of an image
-//  lev_img_load()		- Load 8bit/channel image
+//  lev_img_load()		- Load 8bit/channel image into memory
 //
 //  			[String Processing] (lev_str_xx)
 //
@@ -59,8 +59,8 @@ enum lev_errors {
 	LEV_IMG_ERR_UNKNOWN = -6,
 };
 
-/// ============================================================================
-// Image Utilities
+// ============================================================================
+// Image Processing 
 // ============================================================================
 
 int lev_img_info(const char *path, size_t *out_width, size_t *out_height, size_t *out_bytes_per_pixel);
@@ -69,15 +69,31 @@ int lev_img_info(const char *path, size_t *out_width, size_t *out_height, size_t
 // Use this to calculate buffer size needed before call lev_img_load() if the size is unknown.
 // Return 0 on success, or negative error code on failure. 
 
-int lev_img_load(const char* path, void *out_pixels, size_t buffer_size);
+int lev_img_load(const char* path, void *out_pixels, size_t buffer_size, int desired_channel);
 // [8 bit-per-channel only] Read pixel data from an image file, and store them to given memory address.
 // Return 0 on success, or negative error code on failure.
-// Supported format:
-// 	PGM : Both text(P2 or ascii) and binary(P5 or raw). If maxval of each pixel is not 255,
-// 		it will be upscaled to 255 when stored in memory.	
+//
+// [Channels]
+// Specify 'desired_channel' to force conversion, or 0 to keep the original channels:
+// 	0 : Same as original
+// 	1 : Luminance(Y) 
+// 	2 : Luminance(Y) + Alpha (255)
+// 	3 : RGB
+// 	4 : RGBA (Alpha is always 255)
+// Greyscaling is done by "The Rec. 601 luma formula"
+//
+// [Memory Layout]
+// The output is written as a tightly packed array of unsigned 8-bit integers(uint8_t).
+// Pixels are stored row by row, from top to bottom, left to right.
+// For example, if desired_channel = 4, the memory layout will be as follows:
+// (R, G, B, A, R, G, B, A, ...)
+//
+// [Supported format]
+// PBM, PGM, PPM (Both ASCII and RAW/Binary):
+// 	Pixels with a maxval other than 255 will be normalized to 0-255.	
 
 // ============================================================================
-// String Utilities
+// String Processing 
 // ============================================================================
 
 bool lev_str_match(const char *pattern, const char *str);

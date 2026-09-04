@@ -5,16 +5,21 @@
 #include <stdarg.h>
 #include <ctype.h>
 
+// ===========================================================================
+// Image Processing
+// ===========================================================================
 enum lev_img_formats {
 	LEV_IMGFMT_PBM_ASCII,
 	LEV_IMGFMT_PBM_RAW,
 	LEV_IMGFMT_PGM_ASCII,
 	LEV_IMGFMT_PGM_RAW,
+	LEV_IMGFMT_PPM_ASCII,
+	LEV_IMGFMT_PPM_RAW,
 };
 
 static int _lev_img_read_magic(FILE *fp)
 {
-	// NOTE: This chunk should be changed when parsing other img formats
+	// note: this chunk should be changed when parsing other img formats
 	//     which uses magic number of more than 8 bytes
 	uint8_t magic[8];
 	size_t bytes_read = fread(magic, 1, 8, fp); 
@@ -27,15 +32,19 @@ static int _lev_img_read_magic(FILE *fp)
 		return LEV_IMGFMT_PBM_ASCII;
 	else if (magic[0] == 'P' && magic[1] == '2') 
 		return LEV_IMGFMT_PGM_ASCII;
+	else if (magic[0] == 'P' && magic[1] == '3')
+		return LEV_IMGFMT_PPM_ASCII;
 	else if (magic[0] == 'P' && magic[1] == '4')
 		return LEV_IMGFMT_PBM_RAW;
 	else if (magic[0] == 'P' && magic[1] == '5')
 		return LEV_IMGFMT_PGM_RAW;
+	else if (magic[0] == 'P' && magic[1] == '6')
+		return LEV_IMGFMT_PPM_RAW;
 	else
-		return LEV_IMG_ERR_HEADER;
+		return LEV_IMG_ERR_UNKNOWN;
 }
 
-// Skip comment and whitespaces in PNM header
+// skip comment and whitespaces in pnm header
 static int _lev_img_skip_pnm(FILE *fp)
 {
 	int c;
@@ -45,7 +54,7 @@ static int _lev_img_skip_pnm(FILE *fp)
 		if (c == EOF) {
 			return -1;
 		} else if (c == '#') {
-			// Scan other than '\n' and dont store 
+			// scan other than '\n' and dont store 
 			if (fscanf(fp, "%*[^\n]") == EOF) 
 				return -1;
 		} else if (isspace(c)) {
@@ -59,7 +68,7 @@ static int _lev_img_skip_pnm(FILE *fp)
 	return 0;
 }
 
-// max_val can be NULL
+// max_val can be null
 static int _lev_img_info_pnm(FILE *fp, size_t *width, size_t *height, size_t *max_val)
 {
 	if (_lev_img_skip_pnm(fp) != 0 || fscanf(fp, "%zu", width) != 1)
@@ -96,13 +105,13 @@ int lev_img_info(const char *path, size_t *out_width, size_t *out_height, size_t
 		goto cleanup;
 	}
 
-	int magic = _lev_img_read_magic(fp);	
-	if (magic < 0) {
+	int fmt = _lev_img_read_magic(fp);	
+	if (fmt < 0) {
 		res = LEV_IMG_ERR_HEADER;
 		goto cleanup;
 	}
 
-	switch (magic) {
+	switch (fmt) {
 		case LEV_IMGFMT_PBM_ASCII:
 		case LEV_IMGFMT_PBM_RAW: {
 			fseek(fp, 2, SEEK_SET);
@@ -114,7 +123,9 @@ int lev_img_info(const char *path, size_t *out_width, size_t *out_height, size_t
 		}break;
 
 		case LEV_IMGFMT_PGM_ASCII: 
-		case LEV_IMGFMT_PGM_RAW: {
+		case LEV_IMGFMT_PGM_RAW: 
+		case LEV_IMGFMT_PPM_ASCII:
+		case LEV_IMGFMT_PPM_RAW: {
 			fseek(fp, 2, SEEK_SET);
 			size_t max_val = 0;
 			if (_lev_img_info_pnm(fp, out_width, out_height, &max_val) < 0) {
@@ -123,9 +134,11 @@ int lev_img_info(const char *path, size_t *out_width, size_t *out_height, size_t
 			}
 
 			if (max_val > 255) 
-				*out_bytes_per_pixel = 2;
+				*out_bytes_per_pixel =
+					(fmt == LEV_IMGFMT_PPM_ASCII || fmt == LEV_IMGFMT_PPM_RAW) ? 6 : 2;
 			else
-				*out_bytes_per_pixel = 1;
+				*out_bytes_per_pixel = 
+					(fmt == LEV_IMGFMT_PPM_ASCII || fmt == LEV_IMGFMT_PPM_RAW) ? 3 : 1;
 		} break;
 
 		default: {
@@ -138,10 +151,120 @@ cleanup:
 	return res;
 }
 
-//TODO Channel conversion
-int lev_img_load(const char* path, void *out_pixels, size_t buffer_size)
+// in_pixel & out_pixel have to be rgba order 
+static void _lev_img_convert_channel(size_t o_chan, size_t d_chan, uint8_t *in_pixel, uint8_t *out_pixel) 
 {
-	if (!path || !out_pixels || buffer_size == 0)
+	uint8_t rgba[4] = {0, 0, 0, 255};
+
+	if (o_chan == 1) {
+		rgba[0] = rgba[1] = rgba[2] = in_pixel[0];
+	} else if (o_chan == 2) {
+		rgba[0] = rgba[1] = rgba[2] = in_pixel[0];
+		rgba[3] = in_pixel[1];
+	} else if (o_chan == 3) {
+		rgba[0] = in_pixel[0];
+		rgba[1] = in_pixel[1];
+		rgba[2] = in_pixel[2];
+	} else if (o_chan == 4) {
+		rgba[0] = in_pixel[0];
+		rgba[1] = in_pixel[1];
+		rgba[2] = in_pixel[2];
+		rgba[3] = in_pixel[3];
+	}
+
+	if (d_chan == 1) {
+		//[ref] https://en.wikipedia.org/wiki/yiq
+		out_pixel[0] = (0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2]);
+	} else if (d_chan == 2) {
+		out_pixel[0] = (0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2]);
+		out_pixel[1] = rgba[3];
+	} else if (d_chan == 3) {
+		out_pixel[0] = rgba[0];
+		out_pixel[1] = rgba[1];
+		out_pixel[2] = rgba[2];
+	} else if (d_chan == 4) {
+		out_pixel[0] = rgba[0];
+		out_pixel[1] = rgba[1];
+		out_pixel[2] = rgba[2];
+		out_pixel[3] = rgba[3];
+	}
+}
+
+static int _lev_img_load_pnm(int fmt, FILE *fp, void *out_pixels, size_t buffer_size, int desired_channel)
+{
+	fseek(fp, 2, SEEK_SET);
+	size_t width, height, max_val = 255;
+
+	if (fmt == LEV_IMGFMT_PBM_ASCII || fmt == LEV_IMGFMT_PBM_RAW) {
+		if (_lev_img_info_pnm(fp, &width, &height, NULL) < 0)
+			return LEV_IMG_ERR_HEADER;
+	} else {
+		if (_lev_img_info_pnm(fp, &width, &height, &max_val) < 0)
+			return LEV_IMG_ERR_HEADER;
+	}
+
+	size_t o_chan = (fmt == LEV_IMGFMT_PPM_ASCII || fmt == LEV_IMGFMT_PPM_RAW) ? 3 : 1;
+	size_t d_chan = (desired_channel == 0) ? o_chan : (size_t)desired_channel; 
+
+	if (width * height * d_chan > buffer_size)
+		return LEV_ERR_OVERFLOW;
+
+	uint8_t *pixels = (uint8_t *)out_pixels;
+	size_t out_idx = 0;
+	uint8_t bit_buffer = 0;
+	
+	for (size_t y = 0; y < height; y++) {
+		for (size_t x = 0; x < width; x++) {
+			uint8_t in_pixel[4] = {0};
+
+			switch (fmt) {
+				case LEV_IMGFMT_PGM_RAW:
+				case LEV_IMGFMT_PPM_RAW: {
+					if (fread(in_pixel, 1, o_chan, fp) != o_chan)
+						return LEV_ERR_READ;
+				} break;
+
+				case LEV_IMGFMT_PBM_RAW: {
+					// 8 pixels are packed in 1byte in pbm binary format
+					if (x % 8 == 0) {
+						if (fread(&bit_buffer, 1, 1, fp) != 1)
+							return LEV_ERR_READ;
+					}
+					in_pixel[0] = ((bit_buffer >> (7 - (x % 8))) & 0x01) ? 0 : 255;
+				} break;
+
+				case LEV_IMGFMT_PGM_ASCII:
+				case LEV_IMGFMT_PPM_ASCII:
+				case LEV_IMGFMT_PBM_ASCII: {
+					for (size_t c = 0; c < o_chan; c++) {
+						unsigned int tmp;
+						if (fscanf(fp, "%u", &tmp) != 1)
+							return LEV_ERR_READ;
+
+						if (fmt != LEV_IMGFMT_PBM_ASCII)
+							in_pixel[c] = (uint8_t)tmp;
+						else
+							in_pixel[c] = (tmp == 1) ? 0 : 255;
+					}
+				} break;
+			}
+
+			if (max_val < 255) {
+				for (size_t j = 0; j < o_chan; j++)
+					in_pixel[j] = (uint8_t)((in_pixel[j] * 255) / max_val);
+			}
+
+			_lev_img_convert_channel(o_chan, d_chan, in_pixel, &pixels[out_idx]);
+			out_idx += d_chan;
+		}
+	}
+
+	return 0;
+}
+
+int lev_img_load(const char* path, void *out_pixels, size_t buffer_size, int desired_channel)
+{
+	if (!path || !out_pixels || buffer_size == 0 || desired_channel < 0 || desired_channel > 4)
 		return LEV_ERR_INVALID;
 
 	int res = 0;
@@ -159,114 +282,14 @@ int lev_img_load(const char* path, void *out_pixels, size_t buffer_size)
 	}
 	
 	switch (fmt) {
-		case LEV_IMGFMT_PBM_RAW: {
-			fseek(fp, 2, SEEK_SET);
-			size_t width, height;
-			if (_lev_img_info_pnm(fp, &width, &height, NULL) < 0) {
-				res = LEV_IMG_ERR_HEADER;
-				goto cleanup;
-			}
-
-			//REF: https://netpbm.sourceforge.net/doc/pbm.html	
-			//pbm's 8 pixel is packed to 1byte since it's value is 1 or 0.
-			//The order of the pixels is left to right. The order of their storage within each file byte is most significant bit to least significant bit. 
-			// have to ignore remaining bits once this count reached image width.
-			uint8_t *pixels = (uint8_t *) out_pixels;
-			size_t out_idx = 0;
-			int c = 0;
-			for (size_t y = 0; y < height; y++) {
-				for (size_t x = 0; x < width; x += 8) {
-					c = fgetc(fp);
-					if (c == EOF) {
-						res = LEV_ERR_READ;
-						goto cleanup;
-					}
-
-					uint8_t file_pixel = (uint8_t)c; 
-					for (int i = 7; i >= 0; i--) {
-						if (x + (8 - (i + 1)) >= width) {
-							break;
-						}
-						uint8_t real_pixel = (file_pixel >> i) & 0x01;
-						pixels[out_idx++] = (real_pixel == 1) ? 0 : 255;
-					}
-				}
-			}
-			//TODO unpack and store	
-			
-		} break;
-
-		case LEV_IMGFMT_PBM_ASCII: {
-			fseek(fp, 2, SEEK_SET);
-			size_t dump;
-			if (_lev_img_info_pnm(fp, &dump, &dump, NULL) < 0) {
-				res = LEV_IMG_ERR_HEADER;
-				goto cleanup;
-			}
-
-			uint8_t *pixels = (uint8_t *)out_pixels;
-			for (size_t i = 0; i < buffer_size; i++) {
-				unsigned int tmp;
-				if (fscanf(fp, "%u", &tmp) != 1) {
-					res = LEV_ERR_READ;
-					goto cleanup;
-				}
-				pixels[i] = (uint8_t)(tmp == 1) ? 0 : 255;
-			}
-		} break;
-
-		case LEV_IMGFMT_PGM_RAW: {
-			fseek(fp, 2, SEEK_SET);
-			size_t max_val, dump;
-			if (_lev_img_info_pnm(fp, &dump, &dump, &max_val) < 0) {
-				res = LEV_IMG_ERR_HEADER;
-				goto cleanup;
-			}
-
-			if (max_val > 255) {
-				res = LEV_IMG_ERR_UNKNOWN;
-				goto cleanup;
-			}
-						
-			if (fread(out_pixels, 1, buffer_size, fp) != buffer_size) {
-				res = LEV_ERR_READ;	
-				goto cleanup;
-			}
-
-			if (max_val < 255) { // Scale up the value
-				uint8_t *pixels = (uint8_t *)out_pixels;
-				for (size_t i = 0; i < buffer_size; i++) {
-					pixels[i] = (uint8_t)((pixels[i] * 255) / max_val);
-				}
-			}
-		} break;
-
+		case LEV_IMGFMT_PBM_RAW:
+		case LEV_IMGFMT_PPM_RAW:
+		case LEV_IMGFMT_PGM_RAW: 
+		case LEV_IMGFMT_PBM_ASCII: 
+		case LEV_IMGFMT_PPM_ASCII:
 		case LEV_IMGFMT_PGM_ASCII: {
-			fseek(fp, 2, SEEK_SET);
-			size_t max_val, dump;
-			if (_lev_img_info_pnm(fp, &dump, &dump, &max_val) < 0) {
-				res = LEV_IMG_ERR_HEADER;
-				goto cleanup;
-			}
-
-			if (max_val > 255) {
-				res = LEV_IMG_ERR_UNKNOWN;
-				goto cleanup;
-			}
-
-			uint8_t *pixels = (uint8_t *)out_pixels;
-			for (size_t i = 0; i < buffer_size; i++) {
-				unsigned int temp_val;
-				if (fscanf(fp, "%u", &temp_val) != 1) {
-					res = LEV_ERR_READ;	
-					goto cleanup;
-				}
-
-				if (max_val == 255) 
-					pixels[i] = (uint8_t)temp_val;
-				else
-					pixels[i] = (uint8_t)((temp_val * 255) / max_val);
-			}
+			if ((res = _lev_img_load_pnm(fmt, fp, out_pixels, buffer_size, desired_channel)) < 0) 
+				goto cleanup;	
 		} break;
 
 		default: {
@@ -279,6 +302,9 @@ cleanup:
 	return res;
 }
 
+// ===========================================================================
+// String Processing
+// ===========================================================================
 bool lev_str_match(const char *pattern, const char *str)
 {
 	if (*pattern == '\0') {
@@ -326,6 +352,9 @@ void lev_str_alpha_only(char *str)
 	str[tail] = '\0';
 }
 
+// ===========================================================================
+// File Utilities
+// ===========================================================================
 size_t lev_file_size(const char *path)
 {
 	FILE *fp = fopen(path, "rb");
@@ -360,6 +389,9 @@ int lev_file_read(const char *path, void *out_buffer, size_t buffer_size)
 	return 0;
 }
 
+// ===========================================================================
+// Command-line Utilities
+// ===========================================================================
 const char *lev_cli_parse(int argc, char *argv[], struct lev_cli_option opts[], 
 			  size_t num_opts, const char *rests[], int *rests_count)
 {
@@ -422,6 +454,9 @@ const char *lev_cli_parse(int argc, char *argv[], struct lev_cli_option opts[],
 	return NULL;
 }
 
+// ===========================================================================
+// General Utilities
+// ===========================================================================
 int lev_rand(uint32_t *seed, int min, int max)
 {
 	if (!seed)
@@ -481,6 +516,9 @@ int lev_read_stdin(char *out_buffer, size_t buffer_size, int terminator)
 	return (int)i;
 }
 
+// ===========================================================================
+// Others
+// ===========================================================================
 const char *lev_error_msg(int error_code) 
 {
 	switch (error_code) {
