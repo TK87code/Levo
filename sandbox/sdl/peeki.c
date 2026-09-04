@@ -86,6 +86,16 @@ static void main_loop(struct state *s)
 			} else if (event.type == SDL_DROPFILE) {
 				char *path = event.drop.file;
 				if(path) {
+					if (s->pixels) {
+						free(s->pixels);
+						s->pixels = NULL;
+					}
+
+					if (s->texture) {
+						SDL_DestroyTexture(s->texture);
+						s->texture = NULL;
+					}
+
 					if (load_image(s, path) < 0) {
 						SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 
 								"Error", "Failed to load the image file", NULL);
@@ -103,6 +113,7 @@ static void main_loop(struct state *s)
 						SDL_UpdateTexture(s->texture, NULL, s->pixels, 
 								s->w * sizeof(uint32_t));
 					SDL_free(path);
+					SDL_RaiseWindow(s->window);
 				}
 			}
 		}
@@ -128,6 +139,8 @@ static void sdl_cleanup(struct state *s);
 
 int main(int argc, char *argv[])
 {
+	(void)argc;
+	(void)argv;
 	struct state s = {
 		.scale = 1.0f,
 		.zoom_factor = 1.1f,
@@ -136,6 +149,9 @@ int main(int argc, char *argv[])
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 		//TODO error messaging
 		goto cleanup;
+
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
 
 	if (setup_window(&s) < 0)
 		//TODO error messaging
@@ -155,7 +171,6 @@ static int setup_window(struct state *s)
 	s->win_w = WIN_WIDTH;		
 	s->win_h = WIN_HEIGHT;		
 
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
 
 	s->window = SDL_CreateWindow(
 			"Peeki - Drop a image inside window -",

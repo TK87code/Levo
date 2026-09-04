@@ -190,6 +190,18 @@ static void _lev_img_convert_channel(size_t o_chan, size_t d_chan, uint8_t *in_p
 	}
 }
 
+static int _lev_img_fill_chunk(FILE *fp, uint8_t *chunk, size_t *chunk_len, size_t *chunk_idx)
+{
+	if (*chunk_idx >= *chunk_len) {
+		*chunk_len = fread(chunk, 1, BUFSIZ, fp);
+		*chunk_idx = 0;
+		if (*chunk_len == 0)
+			return LEV_ERR_READ;
+	}
+
+	return 0;
+}
+
 static int _lev_img_load_pnm(int fmt, FILE *fp, void *out_pixels, size_t buffer_size, int desired_channel)
 {
 	fseek(fp, 2, SEEK_SET);
@@ -211,8 +223,12 @@ static int _lev_img_load_pnm(int fmt, FILE *fp, void *out_pixels, size_t buffer_
 
 	uint8_t *pixels = (uint8_t *)out_pixels;
 	size_t out_idx = 0;
-	uint8_t bit_buffer = 0;
-	
+	uint8_t pbmr_buffer = 0;
+
+	uint8_t chunk[BUFSIZ];
+	size_t chunk_len = 0;
+	size_t chunk_idx = BUFSIZ;
+
 	for (size_t y = 0; y < height; y++) {
 		for (size_t x = 0; x < width; x++) {
 			uint8_t in_pixel[4] = {0};
@@ -220,26 +236,39 @@ static int _lev_img_load_pnm(int fmt, FILE *fp, void *out_pixels, size_t buffer_
 			switch (fmt) {
 				case LEV_IMGFMT_PGM_RAW:
 				case LEV_IMGFMT_PPM_RAW: {
-					if (fread(in_pixel, 1, o_chan, fp) != o_chan)
-						return LEV_ERR_READ;
+					for (size_t c = 0; c < o_chan; c++) {
+						if (_lev_img_fill_chunk(fp, chunk, &chunk_len, &chunk_idx) < 0)
+							return LEV_ERR_READ;
+						in_pixel[c] = chunk[chunk_idx++];
+					}
 				} break;
 
 				case LEV_IMGFMT_PBM_RAW: {
 					// 8 pixels are packed in 1byte in pbm binary format
 					if (x % 8 == 0) {
-						if (fread(&bit_buffer, 1, 1, fp) != 1)
+						if (_lev_img_fill_chunk(fp, chunk, &chunk_len, &chunk_idx) < 0)
 							return LEV_ERR_READ;
+						pbmr_buffer = chunk[chunk_idx++];
 					}
-					in_pixel[0] = ((bit_buffer >> (7 - (x % 8))) & 0x01) ? 0 : 255;
+					in_pixel[0] = ((pbmr_buffer >> (7 - (x % 8))) & 0x01) ? 0 : 255;
 				} break;
 
 				case LEV_IMGFMT_PGM_ASCII:
 				case LEV_IMGFMT_PPM_ASCII:
 				case LEV_IMGFMT_PBM_ASCII: {
 					for (size_t c = 0; c < o_chan; c++) {
-						unsigned int tmp;
-						if (fscanf(fp, "%u", &tmp) != 1)
+						int ch;
+						while((ch = fgetc(fp)) != EOF && isspace(ch));
+						if (ch == EOF)
 							return LEV_ERR_READ;
+
+						unsigned int tmp = 0;
+						while (ch >= '0' && ch <= '9') {
+							tmp = tmp * 10 + (ch - '0');
+							ch = fgetc(fp);
+						}
+						if (ch != EOF)
+							ungetc(ch, fp);
 
 						if (fmt != LEV_IMGFMT_PBM_ASCII)
 							in_pixel[c] = (uint8_t)tmp;
