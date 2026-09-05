@@ -16,6 +16,7 @@
 //
 //  lev_draw_fill()		- Fill pixels with color
 //  lev_draw_rect()		- Fill pixels inside a rectangle with color 
+//  lev_draw_line()		- Draw a line with color
 //
 //  			[ String Processing ] (lev_str_xx)
 //
@@ -34,6 +35,7 @@
 //
 //  			[ General Utilities ] (lev_xx)
 //
+//  LEV_SWAP()			- Swap the value of two variables
 //  lev_rand()                	- Generate a pseudo-random integer
 //  lev_read_stdin()          	- Read stdin until a specified terminator or EOF
 //
@@ -98,19 +100,26 @@ int lev_img_load(const char* path, void *out_pixels, size_t buffer_size, int des
 // 	Pixels with a maxval other than 255 will be normalized to 0-255.	
 
 // ============================================================================
-// String Processing 
+// 2D Drawing 
 // ============================================================================
 
 int lev_draw_fill(void *pixels, size_t width, size_t height, uint32_t color);
-// Fill pixles with specified color. 4 byte color need to be in order of RGBA.
+// Fills pixels with specified color. 4 byte color need to be in order of RGBA.
 // For example, If you need to fill the buffer with solid red, it should be
 // Specified as '0xFF0000FF'.
 // Return 0 on success, or negative error code on failure.
 
-int lev_draw_rect(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y, size_t rect_w, size_t rect_h, uint32_t color);
-// Fill pixles inside rectangle with color. Color need to be specified in order of RGBA.
-// For example, If you need to fill the buffer with solid red, it should be
-// Specified as '0xFF0000FF'.
+int lev_draw_rect(void *pixels, size_t pixel_w, size_t pixel_h, // Data of the buffer storing pixels
+		  int x, int y, size_t rect_w, size_t rect_h,   // Data of the rectangle to draw
+		  uint32_t color);				// Color need to be RGBA order. (e.g., Solid red -> 0xff0000ff)
+// Fills pixels inside rectangle with color.
+// Return 0 on success, or negative error code on failure
+
+int lev_draw_line(void *pixels, size_t pixel_w, size_t pixel_h,	// Data of the buffer storing pixels
+	          int x0, int y0,				// The first coordinate
+		  int x1, int y1,				// The second coordinate 
+		  uint32_t color);				// Color need to be RGBA order. (e.g., Solid red -> 0xff0000ff)
+// Draws a line between the specified  2 coordinates.
 // Return 0 on success, or negative error code on failure
 
 // ============================================================================
@@ -162,6 +171,10 @@ const char *lev_cli_parse(int argc, char *argv[],	// argc & argv from main
 // General Utilities
 // ============================================================================
 
+#define LEV_SWAP(type, a, b) do { type _tmp = (a); (a) = (b); (b) = _tmp; } while (0)
+// Swaps the value of two variables of the specified 'type'.
+// Usage: LEV_SWAP(int, x0, x1);
+
 int lev_rand(uint32_t *seed, int min, int max);
 // Generates a pseudo-random integer in the range [min, max] (inclusive).
 // Uses XorShift32 internally. Updates the 32-bit 'seed' state on each call.
@@ -177,6 +190,7 @@ int lev_read_stdin(char *out_buffer, size_t buffer_size, int terminator);
 
 const char *lev_error_msg(int error_code);
 // Generate error message of error_code.
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

@@ -1,5 +1,6 @@
 #include "levo.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdarg.h>
@@ -343,6 +344,17 @@ static void _lev_draw_get_rgba(uint32_t color, uint8_t *r, uint8_t *g, uint8_t *
 	*a = (color >> (8 * 0)) & 0xff;
 }
 
+static void _lev_draw_put_pixel(uint8_t *pixels, size_t w, size_t h, int x, int y,  uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+	if (x >= 0 && x < (int)w && y >= 0 && y < (int)h) {
+		size_t idx = ((size_t)y * w + (size_t)x) * 4;
+		pixels[idx + 0] = r;
+		pixels[idx + 1] = g;
+		pixels[idx + 2] = b;
+		pixels[idx + 3] = a;
+	}
+}
+
 int lev_draw_fill(void *pixels, size_t width, size_t height, uint32_t color)
 {
 	if (!pixels)
@@ -353,19 +365,14 @@ int lev_draw_fill(void *pixels, size_t width, size_t height, uint32_t color)
 	_lev_draw_get_rgba(color, &r, &g, &b, &a);
 
 	for (size_t y = 0; y < height; y++) {
-		for (size_t x = 0; x < width; x++) {
-			size_t idx = (y * width + x) * 4;
-			p[idx + 0] = r;
-			p[idx + 1] = g;
-			p[idx + 2] = b;
-			p[idx + 3] = a;
-		}
+		for (size_t x = 0; x < width; x++) 
+			_lev_draw_put_pixel(p, width, height, x, y, r, g, b, a);
 	}
 
 	return 0;
 }
 
-int lev_draw_fillrect(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y, size_t rect_w, size_t rect_h, uint32_t color)
+int lev_draw_rect(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y, size_t rect_w, size_t rect_h, uint32_t color)
 {
 	if(!pixels)
 		return LEV_ERR_INVALID;
@@ -380,15 +387,57 @@ int lev_draw_fillrect(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y
 	int y1 = ((y + (int)rect_h) < (int)pixel_h) ? y + (int)rect_h : (int)pixel_h;
 
 	for (int ry = y0; ry < y1; ry++) {
-		for (int rx = x0; rx < x1; rx++) {
-			size_t idx = ((size_t)ry * pixel_w + (size_t)rx) * 4;
-			p[idx + 0] = r;
-			p[idx + 1] = g;
-			p[idx + 2] = b;
-			p[idx + 3] = a;
-		}
+		for (int rx = x0; rx < x1; rx++) 
+			_lev_draw_put_pixel(p, pixel_w, pixel_h, rx, ry, r, g, b, a);
 	}
 	
+	return 0;
+}
+
+int lev_draw_line(void *pixels, size_t pixel_w, size_t pixel_h, int x0, int y0, int x1, int y1, uint32_t color)
+{
+	//[REF] https://www.youtube.com/watch?v=RGB-wlatStc
+	//[REF] https://www.youtube.com/watch?v=CceepU1vIKo
+	
+	if (!pixels)
+		return LEV_ERR_INVALID;
+
+	uint8_t *p = (uint8_t *)pixels;
+	uint8_t r,g,b,a;
+	_lev_draw_get_rgba(color, &r, &g, &b, &a);
+
+	bool is_steep = abs(y1 - y0) > abs(x1 - x0);
+	if (is_steep) {
+		LEV_SWAP(int, x0, y0);
+		LEV_SWAP(int, x1, y1);
+	}
+
+	if (x0 > x1) {
+		LEV_SWAP(int, x0, x1);
+		LEV_SWAP(int, y0, y1);
+	}
+
+	int dx = x1 - x0;
+	int dy = abs(y1 - y0);
+
+	int dir = (y0 < y1) ? 1 : -1;
+
+	int y = y0;
+	int D = 2 * dy - dx;
+
+	for (int x = x0; x <= x1; x++) {
+		if (is_steep) 
+			_lev_draw_put_pixel(p, pixel_w, pixel_h, y, x, r, g, b, a); 
+		else
+			_lev_draw_put_pixel(p, pixel_w, pixel_h, x, y, r, g, b, a); 
+
+		if (D >= 0) {
+			y += dir;
+			D -= 2 * dx;
+		}
+		D += (2 * dy);
+	}
+
 	return 0;
 }
 
