@@ -7,32 +7,37 @@
 //===============================================================================
 //  QUICK CHEAT SHEET
 //===============================================================================
-//			[Image Processing] (lev_img_xx)
+//			[ Image Processing ] (lev_img_xx)
 //
 //  lev_img_info()		- Get width, height, and bpp of an image
 //  lev_img_load()		- Load 8bit/channel image into memory
 //
-//  			[String Processing] (lev_str_xx)
+//  			[ 2D Drawing ] (lev_draw)
+//
+//  lev_draw_fill()		- Fill pixels with color
+//  lev_draw_rect()		- Fill pixels inside a rectangle with color 
+//
+//  			[ String Processing ] (lev_str_xx)
 //
 //  lev_str_match()           	- Pattern matching with '*' and '?'
 //  lev_str_tolower()	    	- Change string to all lower case
 //  lev_str_alpha_only()      	- Strip any character other than alphabets
 //
-//  			[File Utilities] (lev_file_xx)
+//  			[ File Utilities ] (lev_file_xx)
 //
 //  lev_file_size()	      	- Read file size in bytes
 //  lev_file_read()		- Read specified bytes of data from a file
 //
-//  			[Command-line Utilities] (lev_cli_xx)
+//  			[ Command-line Utilities ] (lev_cli_xx)
 //
 //  lev_cli_parse()           	- Parse command-line options and arguments
 //
-//  			[General Utilities] (lev_xx)
+//  			[ General Utilities ] (lev_xx)
 //
 //  lev_rand()                	- Generate a pseudo-random integer
 //  lev_read_stdin()          	- Read stdin until a specified terminator or EOF
 //
-//			[Others] (lev_xx)
+//			[ Others ] (lev_xx)
 //			
 //  lev_error_msg()		- Return error message from Levo
 //
@@ -91,6 +96,22 @@ int lev_img_load(const char* path, void *out_pixels, size_t buffer_size, int des
 // [Supported format]
 // PBM, PGM, PPM (Both ASCII and RAW/Binary):
 // 	Pixels with a maxval other than 255 will be normalized to 0-255.	
+
+// ============================================================================
+// String Processing 
+// ============================================================================
+
+int lev_draw_fill(void *pixels, size_t width, size_t height, uint32_t color);
+// Fill pixles with specified color. 4 byte color need to be in order of RGBA.
+// For example, If you need to fill the buffer with solid red, it should be
+// Specified as '0xFF0000FF'.
+// Return 0 on success, or negative error code on failure.
+
+int lev_draw_rect(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y, size_t rect_w, size_t rect_h, uint32_t color);
+// Fill pixles inside rectangle with color. Color need to be specified in order of RGBA.
+// For example, If you need to fill the buffer with solid red, it should be
+// Specified as '0xFF0000FF'.
+// Return 0 on success, or negative error code on failure
 
 // ============================================================================
 // String Processing 

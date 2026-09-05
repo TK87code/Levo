@@ -332,6 +332,67 @@ cleanup:
 }
 
 // ===========================================================================
+// 2D Drawing 
+// ===========================================================================
+
+static void _lev_draw_get_rgba(uint32_t color, uint8_t *r, uint8_t *g, uint8_t *b, uint8_t *a)
+{
+	*r = (color >> (8 * 3)) & 0xff;
+	*g = (color >> (8 * 2)) & 0xff;
+	*b = (color >> (8 * 1)) & 0xff;
+	*a = (color >> (8 * 0)) & 0xff;
+}
+
+int lev_draw_fill(void *pixels, size_t width, size_t height, uint32_t color)
+{
+	if (!pixels)
+		return LEV_ERR_INVALID;
+
+	uint8_t *p = (uint8_t *)pixels;
+	uint8_t r,g,b,a;
+	_lev_draw_get_rgba(color, &r, &g, &b, &a);
+
+	for (size_t y = 0; y < height; y++) {
+		for (size_t x = 0; x < width; x++) {
+			size_t idx = (y * width + x) * 4;
+			p[idx + 0] = r;
+			p[idx + 1] = g;
+			p[idx + 2] = b;
+			p[idx + 3] = a;
+		}
+	}
+
+	return 0;
+}
+
+int lev_draw_fillrect(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y, size_t rect_w, size_t rect_h, uint32_t color)
+{
+	if(!pixels)
+		return LEV_ERR_INVALID;
+
+	uint8_t *p = (uint8_t *)pixels;
+	uint8_t r,g,b,a;
+	_lev_draw_get_rgba(color, &r, &g, &b, &a);
+	
+	int x0 = (x > 0) ? x : 0;
+	int y0 = (y > 0) ? y : 0; 
+	int x1 = ((x + (int)rect_w) < (int)pixel_w) ? x + (int)rect_w : (int)pixel_w;
+	int y1 = ((y + (int)rect_h) < (int)pixel_h) ? y + (int)rect_h : (int)pixel_h;
+
+	for (int ry = y0; ry < y1; ry++) {
+		for (int rx = x0; rx < x1; rx++) {
+			size_t idx = ((size_t)ry * pixel_w + (size_t)rx) * 4;
+			p[idx + 0] = r;
+			p[idx + 1] = g;
+			p[idx + 2] = b;
+			p[idx + 3] = a;
+		}
+	}
+	
+	return 0;
+}
+
+// ===========================================================================
 // String Processing
 // ===========================================================================
 bool lev_str_match(const char *pattern, const char *str)
