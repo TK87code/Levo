@@ -443,6 +443,7 @@ int lev_draw_line(void *pixels, size_t pixel_w, size_t pixel_h, int x0, int y0, 
 
 static int _lev_draw_circle_core(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y, int radius, int in_r, uint32_t color)
 {
+	// TODO learn Bresenham's algorithm and make this better
 	if (!pixels)
 		return LEV_ERR_INVALID;
 
