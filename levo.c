@@ -441,6 +441,54 @@ int lev_draw_line(void *pixels, size_t pixel_w, size_t pixel_h, int x0, int y0, 
 	return 0;
 }
 
+static int _lev_draw_circle_core(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y, int radius, int in_r, uint32_t color)
+{
+	if (!pixels)
+		return LEV_ERR_INVALID;
+
+	int r_sq = radius * radius;
+	int in_sq = in_r * in_r;
+	int x0 = x - radius;
+	int y0 = y - radius;
+	int x1 = x + radius;
+	int y1 = y + radius;
+
+	uint8_t *p = (uint8_t *)pixels;
+	uint8_t r,g,b,a;
+	_lev_draw_get_rgba(color, &r, &g, &b, &a);
+
+	for (int by = y0; by <= y1; by++) {
+		for (int bx = x0; bx <= x1; bx++) {
+			int dx = (bx - x);
+			int dy = (by - y);
+			int hypo_sq = dx * dx + dy * dy;
+
+			if (in_sq == 0) {
+				if (hypo_sq <= r_sq)
+					_lev_draw_put_pixel(p, pixel_w, pixel_h, bx, by, r, g, b, a); 
+			} else {
+				if (hypo_sq <= r_sq && hypo_sq >= in_sq)
+					_lev_draw_put_pixel(p, pixel_w, pixel_h, bx, by, r, g, b, a);
+			}
+		}
+	}
+
+	return 0;
+}
+
+int lev_draw_circle(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y, int r, uint32_t color)
+{
+	return _lev_draw_circle_core(pixels, pixel_w, pixel_h, x, y, r, 0, color); 
+}
+
+int lev_draw_ring(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y, int r, int thickness, uint32_t color)
+{
+	thickness = (thickness > r) ? r : thickness;
+	int in_r = r - thickness;
+	return _lev_draw_circle_core(pixels, pixel_w, pixel_h, x, y, r, in_r, color);
+}
+
+
 // ===========================================================================
 // String Processing
 // ===========================================================================
