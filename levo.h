@@ -12,7 +12,7 @@
 //  lev_img_info()		- Get width, height, and bpp of an image
 //  lev_img_load()		- Load 8bit/channel image into memory (PBM, PGM, PPM)
 //
-//  			[ 2D Drawing ] (lev_draw)
+//  			[ 2D Drawing ] (lev_draw_xx)
 //
 //  lev_draw_fill()		- Fill pixels(memory) with color
 //  lev_draw_rect()		- Draw a rectangle with color 
@@ -78,7 +78,7 @@ int lev_img_info(const char *path, size_t *out_width, size_t *out_height, size_t
 // Use this to calculate buffer size needed before call lev_img_load() if the size is unknown.
 // Return 0 on success, or negative error code on failure. 
 
-int lev_img_load(const char* path, void *out_pixels, size_t buffer_size, int desired_channel);
+int lev_img_load(const char* path, void *out_buffer, size_t buffer_size, int desired_channel);
 // [8 bit-per-channel only] Read pixel data from an image file, and store them to given memory address.
 // Return 0 on success, or negative error code on failure.
 //
@@ -105,35 +105,35 @@ int lev_img_load(const char* path, void *out_pixels, size_t buffer_size, int des
 // 2D Drawing 
 // ============================================================================
 
-int lev_draw_fill(void *pixels, size_t width, size_t height, uint32_t color);
-// Fills pixels with specified color. 4 byte color need to be in order of RGBA.
+int lev_draw_fill(void *buffer, size_t buf_w, size_t buf_h, uint32_t color);
+// Fills the buffer with pixels of specified color. 4 byte color need to be in order of RGBA.
 // For example, If you need to fill the buffer with solid red, it should be
 // Specified as '0xFF0000FF'.
 // Return 0 on success, or negative error code on failure.
 
-int lev_draw_rect(void *pixels, size_t pixel_w, size_t pixel_h, // Data of the buffer storing pixels
-		  int x, int y, size_t rect_w, size_t rect_h,   // Data of the rectangle to draw
-		  uint32_t color);				// Color need to be RGBA order (e.g., Solid red -> 0xff0000ff)
+int lev_draw_rect(void *buffer, size_t buf_w, size_t buf_h, // Data of the buffer storing pixels
+		  int x, int y, int rect_w, int rect_h,     // Data of the rectangle to draw
+		  uint32_t color);			    // Color need to be RGBA order (e.g., Solid red -> 0xff0000ff)
 // Fills pixels inside rectangle with color.
 // Return 0 on success, or negative error code on failure
 
-int lev_draw_line(void *pixels, size_t pixel_w, size_t pixel_h,	// Data of the buffer storing pixels
-	          int x0, int y0,				// The first coordinate
-		  int x1, int y1,				// The second coordinate 
-		  uint32_t color);				// Color need to be RGBA order (e.g., Solid red -> 0xff0000ff)
+int lev_draw_line(void *buffer, size_t buf_w, size_t buf_h, // Data of the buffer storing pixels
+	          int x0, int y0,			    // The first coordinate
+		  int x1, int y1,			    // The second coordinate 
+		  uint32_t color);			    // Color need to be RGBA order (e.g., Solid red -> 0xff0000ff)
 // Draws a line between the specified  2 coordinates.
 // Return 0 on success, or negative error code on failure
 
-int lev_draw_circle(void *pixels, size_t pixel_w, size_t pixel_h, // Data of the buffer storing pixels 
-		    int x, int y, int r,			  // Coordinate of the center of the circle, and radius 
-		    uint32_t color);	  			  // Color need to be RGBA order (e.g., Solid red -> 0xff0000ff)	 
+int lev_draw_circle(void *buffer, size_t buf_w, size_t buf_h, // Data of the buffer storing pixels 
+		    int x, int y, int r,		      // Coordinate of the center of the circle, and radius 
+		    uint32_t color);	  		      // Color need to be RGBA order (e.g., Solid red -> 0xff0000ff)	 
 // Draws a filled-circle at specified coordinates.
 // Return 0 on success, or negative error code on failure.
 
-int lev_draw_ring(void *pixels, size_t pixel_w, size_t pixel_h, // Data of the buffer storing pixels
-		  int x, int y, int r,				// Coordinate of the center of the circle, and radius 
-		  int thickness,				// Line thickness in pixel 
-		  uint32_t color);				// Color need to be RGBA order (e.g., Solid red -> 0xff0000ff)
+int lev_draw_ring(void *buffer, size_t buf_w, size_t buf_h, // Data of the buffer storing pixels
+		  int x, int y, int r,			    // Coordinate of the center of the circle, and radius 
+		  int thickness,			    // Line thickness in pixel 
+		  uint32_t color);			    // Color need to be RGBA order (e.g., Solid red -> 0xff0000ff)
 // Draws a ring (circle without filling) at specified coordinates.
 // Return 0 on success, or negative error code on failure.
 
@@ -176,7 +176,7 @@ struct lev_cli_option {
 
 const char *lev_cli_parse(int argc, char *argv[],	// argc & argv from main 
 			  struct lev_cli_option opts[], // array of option definitions
-			  size_t num_opts,              // number of elements in 'opts'
+			  size_t num_opts,              // number of elements in 'opts' array
 			  const char *rests[],          // array to receive positional arguments
 			  int *rests_count);            // count of positional arguments
 // Parses command-line arguments into options and positional arguments.

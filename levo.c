@@ -203,7 +203,7 @@ static int _lev_img_fill_chunk(FILE *fp, uint8_t *chunk, size_t *chunk_len, size
 	return 0;
 }
 
-static int _lev_img_load_pnm(int fmt, FILE *fp, void *out_pixels, size_t buffer_size, int desired_channel)
+static int _lev_img_load_pnm(int fmt, FILE *fp, void *out_buffer, size_t buffer_size, int desired_channel)
 {
 	fseek(fp, 2, SEEK_SET);
 	size_t width, height, max_val = 255;
@@ -222,7 +222,7 @@ static int _lev_img_load_pnm(int fmt, FILE *fp, void *out_pixels, size_t buffer_
 	if (width * height * d_chan > buffer_size)
 		return LEV_ERR_OVERFLOW;
 
-	uint8_t *pixels = (uint8_t *)out_pixels;
+	uint8_t *buf = (uint8_t *)out_buffer;
 	size_t out_idx = 0;
 	uint8_t pbmr_buffer = 0;
 
@@ -284,7 +284,7 @@ static int _lev_img_load_pnm(int fmt, FILE *fp, void *out_pixels, size_t buffer_
 					in_pixel[j] = (uint8_t)((in_pixel[j] * 255) / max_val);
 			}
 
-			_lev_img_convert_channel(o_chan, d_chan, in_pixel, &pixels[out_idx]);
+			_lev_img_convert_channel(o_chan, d_chan, in_pixel, &buf[out_idx]);
 			out_idx += d_chan;
 		}
 	}
@@ -292,9 +292,9 @@ static int _lev_img_load_pnm(int fmt, FILE *fp, void *out_pixels, size_t buffer_
 	return 0;
 }
 
-int lev_img_load(const char* path, void *out_pixels, size_t buffer_size, int desired_channel)
+int lev_img_load(const char* path, void *out_buffer, size_t buffer_size, int desired_channel)
 {
-	if (!path || !out_pixels || buffer_size == 0 || desired_channel < 0 || desired_channel > 4)
+	if (!path || !out_buffer || buffer_size == 0 || desired_channel < 0 || desired_channel > 4)
 		return LEV_ERR_INVALID;
 
 	int res = 0;
@@ -318,7 +318,7 @@ int lev_img_load(const char* path, void *out_pixels, size_t buffer_size, int des
 		case LEV_IMGFMT_PBM_ASCII: 
 		case LEV_IMGFMT_PPM_ASCII:
 		case LEV_IMGFMT_PGM_ASCII: {
-			if ((res = _lev_img_load_pnm(fmt, fp, out_pixels, buffer_size, desired_channel)) < 0) 
+			if ((res = _lev_img_load_pnm(fmt, fp, out_buffer, buffer_size, desired_channel)) < 0) 
 				goto cleanup;	
 		} break;
 
@@ -344,65 +344,64 @@ static void _lev_draw_get_rgba(uint32_t color, uint8_t *r, uint8_t *g, uint8_t *
 	*a = (color >> (8 * 0)) & 0xff;
 }
 
-static void _lev_draw_put_pixel(uint8_t *pixels, size_t w, size_t h, int x, int y,  uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+static void _lev_draw_put_pixel(uint8_t *buffer, size_t w, size_t h, int x, int y,  uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	if (x >= 0 && x < (int)w && y >= 0 && y < (int)h) {
 		size_t idx = ((size_t)y * w + (size_t)x) * 4;
-		pixels[idx + 0] = r;
-		pixels[idx + 1] = g;
-		pixels[idx + 2] = b;
-		pixels[idx + 3] = a;
+		buffer[idx + 0] = r;
+		buffer[idx + 1] = g;
+		buffer[idx + 2] = b;
+		buffer[idx + 3] = a;
 	}
 }
 
-int lev_draw_fill(void *pixels, size_t width, size_t height, uint32_t color)
+int lev_draw_fill(void *buffer, size_t width, size_t height, uint32_t color)
 {
-	if (!pixels)
+	if (!buffer || width == 0 || height == 0)
 		return LEV_ERR_INVALID;
 
-	uint8_t *p = (uint8_t *)pixels;
+	uint8_t *buf = (uint8_t *)buffer;
 	uint8_t r,g,b,a;
 	_lev_draw_get_rgba(color, &r, &g, &b, &a);
 
 	for (size_t y = 0; y < height; y++) {
 		for (size_t x = 0; x < width; x++) 
-			_lev_draw_put_pixel(p, width, height, x, y, r, g, b, a);
+			_lev_draw_put_pixel(buf, width, height, x, y, r, g, b, a);
 	}
 
 	return 0;
 }
 
-int lev_draw_rect(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y, size_t rect_w, size_t rect_h, uint32_t color)
+int lev_draw_rect(void *buffer, size_t buf_w, size_t buf_h, int x, int y, int rect_w, int rect_h, uint32_t color)
 {
-	if(!pixels)
+	if(!buffer || buf_w == 0 || buf_h == 0 || rect_w <= 0 || rect_h <= 0)
 		return LEV_ERR_INVALID;
 
-	uint8_t *p = (uint8_t *)pixels;
+	uint8_t *buf = (uint8_t *)buffer;
 	uint8_t r,g,b,a;
 	_lev_draw_get_rgba(color, &r, &g, &b, &a);
 	
 	int x0 = (x > 0) ? x : 0;
 	int y0 = (y > 0) ? y : 0; 
-	int x1 = ((x + (int)rect_w) < (int)pixel_w) ? x + (int)rect_w : (int)pixel_w;
-	int y1 = ((y + (int)rect_h) < (int)pixel_h) ? y + (int)rect_h : (int)pixel_h;
+	int x1 = ((x + (int)rect_w) < (int)buf_w) ? x + (int)rect_w : (int)buf_w;
+	int y1 = ((y + (int)rect_h) < (int)buf_h) ? y + (int)rect_h : (int)buf_h;
 
 	for (int ry = y0; ry < y1; ry++) {
 		for (int rx = x0; rx < x1; rx++) 
-			_lev_draw_put_pixel(p, pixel_w, pixel_h, rx, ry, r, g, b, a);
+			_lev_draw_put_pixel(buf, buf_w, buf_h, rx, ry, r, g, b, a);
 	}
 	
 	return 0;
 }
 
-int lev_draw_line(void *pixels, size_t pixel_w, size_t pixel_h, int x0, int y0, int x1, int y1, uint32_t color)
+int lev_draw_line(void *buffer, size_t buf_w, size_t buf_h, int x0, int y0, int x1, int y1, uint32_t color)
 {
 	//[REF] https://www.youtube.com/watch?v=RGB-wlatStc
 	//[REF] https://www.youtube.com/watch?v=CceepU1vIKo
-	
-	if (!pixels)
+	if (!buffer || buf_w == 0 || buf_h == 0)
 		return LEV_ERR_INVALID;
 
-	uint8_t *p = (uint8_t *)pixels;
+	uint8_t *buf = (uint8_t *)buffer;
 	uint8_t r,g,b,a;
 	_lev_draw_get_rgba(color, &r, &g, &b, &a);
 
@@ -419,34 +418,28 @@ int lev_draw_line(void *pixels, size_t pixel_w, size_t pixel_h, int x0, int y0, 
 
 	int dx = x1 - x0;
 	int dy = abs(y1 - y0);
-
 	int dir = (y0 < y1) ? 1 : -1;
-
 	int y = y0;
-	int D = 2 * dy - dx;
+	int p = 2 * dy - dx;
 
 	for (int x = x0; x <= x1; x++) {
 		if (is_steep) 
-			_lev_draw_put_pixel(p, pixel_w, pixel_h, y, x, r, g, b, a); 
+			_lev_draw_put_pixel(buf, buf_w, buf_h, y, x, r, g, b, a); 
 		else
-			_lev_draw_put_pixel(p, pixel_w, pixel_h, x, y, r, g, b, a); 
+			_lev_draw_put_pixel(buf, buf_w, buf_h, x, y, r, g, b, a); 
 
-		if (D >= 0) {
+		if (p >= 0) {
 			y += dir;
-			D -= 2 * dx;
+			p -= 2 * dx;
 		}
-		D += (2 * dy);
+		p += (2 * dy);
 	}
 
 	return 0;
 }
 
-static int _lev_draw_circle_core(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y, int radius, int in_r, uint32_t color)
+static int _lev_draw_circle_core(void *buffer, size_t buf_w, size_t buf_h, int x, int y, int radius, int in_r, uint32_t color)
 {
-	// TODO learn Bresenham's algorithm and make this better
-	if (!pixels)
-		return LEV_ERR_INVALID;
-
 	int r_sq = radius * radius;
 	int in_sq = in_r * in_r;
 	int x0 = x - radius;
@@ -454,7 +447,7 @@ static int _lev_draw_circle_core(void *pixels, size_t pixel_w, size_t pixel_h, i
 	int x1 = x + radius;
 	int y1 = y + radius;
 
-	uint8_t *p = (uint8_t *)pixels;
+	uint8_t *buf = (uint8_t *)buffer;
 	uint8_t r,g,b,a;
 	_lev_draw_get_rgba(color, &r, &g, &b, &a);
 
@@ -466,10 +459,10 @@ static int _lev_draw_circle_core(void *pixels, size_t pixel_w, size_t pixel_h, i
 
 			if (in_sq == 0) {
 				if (hypo_sq <= r_sq)
-					_lev_draw_put_pixel(p, pixel_w, pixel_h, bx, by, r, g, b, a); 
+					_lev_draw_put_pixel(buf, buf_w, buf_h, bx, by, r, g, b, a); 
 			} else {
 				if (hypo_sq <= r_sq && hypo_sq >= in_sq)
-					_lev_draw_put_pixel(p, pixel_w, pixel_h, bx, by, r, g, b, a);
+					_lev_draw_put_pixel(buf, buf_w, buf_h, bx, by, r, g, b, a);
 			}
 		}
 	}
@@ -477,16 +470,19 @@ static int _lev_draw_circle_core(void *pixels, size_t pixel_w, size_t pixel_h, i
 	return 0;
 }
 
-int lev_draw_circle(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y, int r, uint32_t color)
+int lev_draw_circle(void *buffer, size_t buf_w, size_t buf_h, int x, int y, int r, uint32_t color)
 {
-	return _lev_draw_circle_core(pixels, pixel_w, pixel_h, x, y, r, 0, color); 
+	if (!buffer|| buf_w == 0 || buf_h == 0 || r < 0)
+		return LEV_ERR_INVALID;
+	return _lev_draw_circle_core(buffer, buf_w, buf_h, x, y, r, 0, color); 
 }
 
-int lev_draw_ring(void *pixels, size_t pixel_w, size_t pixel_h, int x, int y, int r, int thickness, uint32_t color)
+int lev_draw_ring(void *buffer, size_t buf_w, size_t buf_h, int x, int y, int r, int thickness, uint32_t color)
 {
+	if (!buffer || buf_w == 0 || buf_h == 0 || r < 0 || thickness < 0)
+		return LEV_ERR_INVALID;
 	thickness = (thickness > r) ? r : thickness;
-	int in_r = r - thickness;
-	return _lev_draw_circle_core(pixels, pixel_w, pixel_h, x, y, r, in_r, color);
+	return _lev_draw_circle_core(buffer, buf_w, buf_h, x, y, r, r - thickness, color);
 }
 
 
