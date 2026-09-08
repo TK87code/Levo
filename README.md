@@ -27,5 +27,8 @@ But, Levo is not aimed at building massive, high-performance engines. It's a too
 ## Available Modules
 Please refer to "Quick Cheat sheet" in `levo.h` for the complete list of available functions and detailed documentation.
 
+## Sandbox
+Sandbox file is just a collection of tiny projects that I create to test Levo library or to educate myself. I include them to repository to show as sample, but those are not fully tested or completed projects.
+
 ## License
 This software is dual-licensed to the public domain and under the following license: you are granted a perpetual, irrevocable license to copy, modify, publish, and distribute this file as you see fit.
