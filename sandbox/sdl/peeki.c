@@ -60,6 +60,12 @@ static void main_loop(struct state *s)
 					imgy = (s->win_h - s->h) / 2;
 				}
 
+			} else if (event.type == SDL_WINDOWEVENT) {
+				if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+					s->win_w = event.window.data1;
+					s->win_h = event.window.data2;
+				}
+
 			} else if (event.type == SDL_MOUSEWHEEL) {
 				int mouse_x, mouse_y;
 				SDL_GetMouseState(&mouse_x, &mouse_y);
@@ -106,7 +112,7 @@ static void main_loop(struct state *s)
 					imgy = (s->win_h - s->h) / 2;
 					s->texture = SDL_CreateTexture(s->renderer, 
 						SDL_PIXELFORMAT_RGBA32, 
-						SDL_TEXTUREACCESS_TARGET, 
+						SDL_TEXTUREACCESS_STATIC, 
 						s->w, s->h);	
 
 					if (s->texture != NULL)
@@ -121,13 +127,15 @@ static void main_loop(struct state *s)
 		SDL_SetRenderDrawColor(s->renderer, 30, 30, 30, 255);
 		SDL_RenderClear(s->renderer);
 
-		SDL_Rect dist = {
-			.x = imgx,
-			.y = imgy,
-			.w = s->w * s->scale,
-			.h = s->h * s->scale,
-		};
-		SDL_RenderCopy(s->renderer,s->texture, NULL, &dist);
+		if (s->texture != NULL) {
+			SDL_Rect dist = {
+				.x = imgx,
+				.y = imgy,
+				.w = s->w * s->scale,
+				.h = s->h * s->scale,
+			};
+			SDL_RenderCopy(s->renderer,s->texture, NULL, &dist);
+		}
 
 		SDL_RenderPresent(s->renderer);
 		SDL_Delay(16); 
@@ -178,7 +186,7 @@ static int setup_window(struct state *s)
 			SDL_WINDOWPOS_CENTERED,
 			s->win_w,
 			s->win_h,
-			SDL_WINDOW_SHOWN
+			SDL_WINDOW_RESIZABLE
 			);
 
 	if (!s->window) {
