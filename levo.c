@@ -668,6 +668,11 @@ int lev_rand(uint32_t *seed, int min, int max)
 	return (int)((int64_t)min + (int64_t)offset);
 }
 
+float lev_distance_sq(float x0, float y0, float x1, float y1)
+{
+	return ((x1 - x0) * (x1 - x0)) + ((y1 - y0) * (y1 - y0));
+}
+
 int lev_read_stdin(char *out_buffer, size_t buffer_size, int terminator)
 {
 	if (!out_buffer || buffer_size == 0)

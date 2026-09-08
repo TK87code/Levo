@@ -38,7 +38,9 @@
 //  			[ General Utilities ] (lev_xx)
 //
 //  LEV_SWAP()			- Swap the value of two variables
+//  LEV_MAX()			- Return max value of two variables
 //  lev_rand()                	- Generate a pseudo-random integer
+//  lev_distance_sq()		- Get distance of two coordinates
 //  lev_read_stdin()          	- Read stdin until a specified terminator or EOF
 //
 //			[ Others ] (lev_xx)
@@ -190,9 +192,16 @@ const char *lev_cli_parse(int argc, char *argv[],	// argc & argv from main
 // Swaps the value of two variables of the specified 'type'.
 // Usage: LEV_SWAP(int, x0, x1);
 
+#define LEV_MAX(a, b) ((a) > (b) ? (a) : (b))
+// Return the bigger value among two variables.
+// Usage: LEV_MAX(x, y);
+
 int lev_rand(uint32_t *seed, int min, int max);
 // Generates a pseudo-random integer in the range [min, max] (inclusive).
-// Uses XorShift32 internally. Updates the 32-bit 'seed' state on each call.
+// Updates the given 32-bit 'seed' state on each call.
+
+float lev_distance_sq(float x0, float y0, float x1, float y1);
+// Return Euclidean distance squared between two coordinates. 
 
 int lev_read_stdin(char *out_buffer, size_t buffer_size, int terminator);
 // Reads stdin into 'out_buffer' until 'terminator' char or EOF is encountered.
