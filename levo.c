@@ -752,6 +752,7 @@ const char *lev_error_msg(int error_code)
 		case LEV_ERR_INVALID: 	return "Invalid parameter passed.";
 		case LEV_ERR_FOPEN:	return "Failed to open the file.";	
 		case LEV_ERR_READ:	return "Error in reading the file.";
+		case LEV_ERR_WRITE:	return "Error in writing to the file.";
 		case LEV_ERR_OVERFLOW:	return "Buffer overflow when storing to memory.";
 		case LEV_IMG_ERR_HEADER:return "Error in reading the image header.";
 		case LEV_IMG_ERR_UNKNOWN:return "Unknown or unsupported image format.";
