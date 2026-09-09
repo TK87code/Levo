@@ -103,25 +103,19 @@ int lev_img_info(const char *path, size_t *out_width, size_t *out_height, size_t
 	int res = 0;
 
 	FILE *fp = fopen(path, "rb");
-	if (!fp) {
-		res = LEV_ERR_FOPEN;
-		goto cleanup;
-	}
+	if (!fp) 
+		_LEV_ERRGOTO(res, LEV_ERR_FOPEN, cleanup);
 
 	int fmt = _lev_img_read_magic(fp);	
-	if (fmt < 0) {
-		res = LEV_IMG_ERR_HEADER;
-		goto cleanup;
-	}
+	if (fmt < 0) 
+		_LEV_ERRGOTO(res, LEV_IMG_ERR_HEADER, cleanup);
 
 	switch (fmt) {
 		case LEV_IMGFMT_PBM_ASCII:
 		case LEV_IMGFMT_PBM_RAW: {
 			fseek(fp, 2, SEEK_SET);
-			if (_lev_img_info_pnm(fp, out_width, out_height, NULL) < 0) {
-				res = LEV_IMG_ERR_HEADER;
-				goto cleanup;
-			}	
+			if (_lev_img_info_pnm(fp, out_width, out_height, NULL) < 0) 
+				_LEV_ERRGOTO(res, LEV_IMG_ERR_HEADER, cleanup);
 			*out_bytes_per_pixel = 1;
 		}break;
 
@@ -131,10 +125,8 @@ int lev_img_info(const char *path, size_t *out_width, size_t *out_height, size_t
 		case LEV_IMGFMT_PPM_RAW: {
 			fseek(fp, 2, SEEK_SET);
 			size_t max_val = 0;
-			if (_lev_img_info_pnm(fp, out_width, out_height, &max_val) < 0) {
-				res = LEV_IMG_ERR_HEADER;
-				goto cleanup;
-			}
+			if (_lev_img_info_pnm(fp, out_width, out_height, &max_val) < 0) 
+				_LEV_ERRGOTO(res, LEV_IMG_ERR_HEADER, cleanup);
 
 			if (max_val > 255) 
 				*out_bytes_per_pixel =
@@ -145,7 +137,7 @@ int lev_img_info(const char *path, size_t *out_width, size_t *out_height, size_t
 		} break;
 
 		default: {
-			res = LEV_IMG_ERR_UNKNOWN;
+			_LEV_ERRGOTO(res, LEV_IMG_ERR_UNKNOWN, cleanup);
 		} break;
 	}
 			
@@ -302,16 +294,12 @@ int lev_img_load(const char* path, void *out_buffer, size_t buffer_size, int des
 	int res = 0;
 
 	FILE *fp = fopen(path, "rb");
-	if (!fp) {
-		res = LEV_ERR_FOPEN;
-		goto cleanup;
-	}
+	if (!fp) 
+		_LEV_ERRGOTO(res, LEV_ERR_FOPEN, cleanup);
 
 	int fmt = _lev_img_read_magic(fp);
-	if (fmt < 0) {
-		res = LEV_IMG_ERR_HEADER;
-		goto cleanup;
-	}
+	if (fmt < 0) 
+		_LEV_ERRGOTO(res, LEV_IMG_ERR_HEADER, cleanup);
 	
 	switch (fmt) {
 		case LEV_IMGFMT_PBM_RAW:
@@ -321,11 +309,11 @@ int lev_img_load(const char* path, void *out_buffer, size_t buffer_size, int des
 		case LEV_IMGFMT_PPM_ASCII:
 		case LEV_IMGFMT_PGM_ASCII: {
 			if ((res = _lev_img_load_pnm(fmt, fp, out_buffer, buffer_size, desired_channel)) < 0) 
-				goto cleanup;	
+				_LEV_ERRGOTO(res, LEV_ERR_READ, cleanup);
 		} break;
 
 		default: {
-			res = LEV_IMG_ERR_UNKNOWN;
+			_LEV_ERRGOTO(res, LEV_IMG_ERR_UNKNOWN, cleanup);
 		} break;
 	}
 
