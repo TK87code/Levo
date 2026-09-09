@@ -6,6 +6,8 @@
 #include <stdarg.h>
 #include <ctype.h>
 
+#define _LEV_ERRGOTO(res, err_code, tag) do { res = err_code; goto tag; }while(0)
+
 // ===========================================================================
 // Image Processing
 // ===========================================================================
@@ -328,7 +330,55 @@ int lev_img_load(const char* path, void *out_buffer, size_t buffer_size, int des
 	}
 
 cleanup:
-	if(fp) fclose(fp);
+	if(fp) 
+		fclose(fp);
+	return res;
+}
+
+int lev_img_write_ppm(const char *path, const void *buffer, size_t width, size_t height, int channels)  
+{
+	if (!path || !buffer || width == 0 || height == 0 || channels < 0 || channels > 4)
+		return LEV_ERR_INVALID;
+
+	int res = 0;
+
+	FILE *fp = fopen(path, "wb");	
+	if (!fp) 
+		_LEV_ERRGOTO(res, LEV_ERR_FOPEN, cleanup);
+
+	// PPM header
+	fprintf(fp, "P6\n%zu %zu\n255\n", width, height);
+
+	switch (channels) {
+		case 1:
+		case 2:
+		case 4: {
+			uint8_t *src = (uint8_t *)buffer;
+			uint8_t in_pixel[4] = {0};
+			uint8_t out_pixel[3] = {0};
+			size_t total_pixels = width * height;
+			size_t src_index = 0;
+
+			for (size_t p = 0; p < total_pixels; p++) {
+				memcpy(in_pixel, &src[src_index], (size_t)channels);
+				_lev_img_convert_channel(channels, 3, in_pixel, out_pixel);
+				if (fwrite(out_pixel, 1, 3, fp) != 3) 
+					_LEV_ERRGOTO(res, LEV_ERR_WRITE, cleanup);
+				src_index += (size_t)channels;
+			}
+
+		} break;
+
+		case 3: {
+			size_t buff_size = width * height * channels;
+			if (fwrite(buffer, 1, buff_size, fp) != buff_size) 
+				_LEV_ERRGOTO(res, LEV_ERR_WRITE, cleanup);
+		} break;
+	}
+
+cleanup:
+	if(fp)
+		fclose(fp);
 	return res;
 }
 

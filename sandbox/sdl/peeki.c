@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#define WIN_WIDTH 960 
-#define WIN_HEIGHT 720 
+#define INITIAL_WIN_WIDTH 960 
+#define INITIAL_WIN_HEIGHT 720 
 
 struct state {
 	SDL_Window *window;
@@ -23,18 +23,32 @@ struct state {
 	const float zoom_factor;
 };
 
-static int load_image(struct state *s, const char *path)
+static int image_to_texture(struct state *s, const char *path)
 {
+	if (s->pixels) {
+		free(s->pixels);
+		s->pixels = NULL;
+	}
+
+	if (s->texture) {
+		SDL_DestroyTexture(s->texture);
+		s->texture = NULL;
+	}
+
 	if(lev_img_info(path, &s->w, &s->h, &s->bpp) < 0)  
 		return -1;
 
 	s->img_size = s->w * s->h * sizeof(uint32_t);
-	s->pixels = malloc(s->img_size);
-	if (!s->pixels) 
+	if ((s->pixels = malloc(s->img_size)) == NULL)
 		return -1;
 
-	if(lev_img_load(path, s->pixels, s->img_size, 4) < 0)
+	if(lev_img_load(path, s->pixels, s->img_size, 4) < 0) 
 		return -1;
+
+	if ((s->texture = SDL_CreateTexture(s->renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, s->w, s->h)) == NULL)	
+		return -1;
+
+	SDL_UpdateTexture(s->texture, NULL, s->pixels, s->w * sizeof(uint32_t));
 
 	return 0;
 }
@@ -92,32 +106,13 @@ static void main_loop(struct state *s)
 			} else if (event.type == SDL_DROPFILE) {
 				char *path = event.drop.file;
 				if(path) {
-					if (s->pixels) {
-						free(s->pixels);
-						s->pixels = NULL;
-					}
-
-					if (s->texture) {
-						SDL_DestroyTexture(s->texture);
-						s->texture = NULL;
-					}
-
-					if (load_image(s, path) < 0) {
-						SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 
-								"Error", "Failed to load the image file", NULL);
-					}
+					if (image_to_texture(s, path) < 0) 
+						SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Failed to load the image file", NULL);
 					
 					s->scale = 1.0f;
 					imgx = (s->win_w - s->w) / 2;
 					imgy = (s->win_h - s->h) / 2;
-					s->texture = SDL_CreateTexture(s->renderer, 
-						SDL_PIXELFORMAT_RGBA32, 
-						SDL_TEXTUREACCESS_STATIC, 
-						s->w, s->h);	
 
-					if (s->texture != NULL)
-						SDL_UpdateTexture(s->texture, NULL, s->pixels, 
-								s->w * sizeof(uint32_t));
 					SDL_free(path);
 					SDL_RaiseWindow(s->window);
 				}
@@ -127,15 +122,13 @@ static void main_loop(struct state *s)
 		SDL_SetRenderDrawColor(s->renderer, 30, 30, 30, 255);
 		SDL_RenderClear(s->renderer);
 
-		if (s->texture != NULL) {
-			SDL_Rect dist = {
-				.x = imgx,
-				.y = imgy,
-				.w = s->w * s->scale,
-				.h = s->h * s->scale,
-			};
-			SDL_RenderCopy(s->renderer,s->texture, NULL, &dist);
-		}
+		SDL_Rect dist = {
+			.x = imgx,
+			.y = imgy,
+			.w = s->w * s->scale,
+			.h = s->h * s->scale,
+		};
+		SDL_RenderCopy(s->renderer,s->texture, NULL, &dist);
 
 		SDL_RenderPresent(s->renderer);
 		SDL_Delay(16); 
@@ -147,23 +140,27 @@ static void sdl_cleanup(struct state *s);
 
 int main(int argc, char *argv[])
 {
-	(void)argc;
-	(void)argv;
 	struct state s = {
 		.scale = 1.0f,
 		.zoom_factor = 1.1f,
 	};
 
-	if (SDL_Init(SDL_INIT_VIDEO) < 0)
-		//TODO error messaging
+	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Failed to start the application.", NULL);
 		goto cleanup;
+	}
 
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
 	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
 
-	if (setup_window(&s) < 0)
-		//TODO error messaging
+	if (setup_window(&s) < 0) {
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Failed to start the application.", NULL);
 		goto cleanup;
+	}
+
+	if (argc == 2 && argv[1] != NULL)
+		if (image_to_texture(&s, argv[1]) < 0)
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Failed to Load the image.", NULL);
 	
 	main_loop(&s);
 
@@ -176,32 +173,17 @@ cleanup:
 
 static int setup_window(struct state *s)
 {
-	s->win_w = WIN_WIDTH;		
-	s->win_h = WIN_HEIGHT;		
+	s->win_w = INITIAL_WIN_WIDTH;		
+	s->win_h = INITIAL_WIN_HEIGHT;		
 
+	s->window = SDL_CreateWindow("Peeki - Drop a image inside window -", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, s->win_w, s->win_h, SDL_WINDOW_RESIZABLE);
 
-	s->window = SDL_CreateWindow(
-			"Peeki - Drop a image inside window -",
-			SDL_WINDOWPOS_CENTERED,
-			SDL_WINDOWPOS_CENTERED,
-			s->win_w,
-			s->win_h,
-			SDL_WINDOW_RESIZABLE
-			);
-
-	if (!s->window) {
-		printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
-		SDL_Quit();
+	if (!s->window) 
 		return -1;
-	}
 
 	s->renderer = SDL_CreateRenderer(s->window, -1, SDL_RENDERER_ACCELERATED);
-	if (!s->renderer) {
-		printf("SDL_CreateRenderer Error: %s\n", SDL_GetError());
-		SDL_DestroyWindow(s->window);
-		SDL_Quit();
+	if (!s->renderer) 
 		return -1;
-	}
 
 	return 0;
 }

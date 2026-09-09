@@ -10,7 +10,8 @@
 //			[ Image Processing ] (lev_img_xx)
 //
 //  lev_img_info()		- Get width, height, and bpp of an image
-//  lev_img_load()		- Load 8bit/channel image into memory (PBM, PGM, PPM)
+//  lev_img_load()		- Load 8bit per channel image into memory (PBM, PGM, PPM)
+//  lev_img_write_ppm()		- Write ppm (8bit per channel, binary) image file
 //
 //  			[ 2D Drawing ] (lev_draw_xx)
 //
@@ -65,9 +66,10 @@ enum lev_errors {
 	LEV_ERR_INVALID = -1,
 	LEV_ERR_FOPEN = -2,
 	LEV_ERR_READ = -3,
-	LEV_ERR_OVERFLOW = -4,
-	LEV_IMG_ERR_HEADER = -5,
-	LEV_IMG_ERR_UNKNOWN = -6,
+	LEV_ERR_WRITE = -4,
+	LEV_ERR_OVERFLOW = -5,
+	LEV_IMG_ERR_HEADER = -6,
+	LEV_IMG_ERR_UNKNOWN = -7,
 };
 
 // ============================================================================
@@ -102,6 +104,12 @@ int lev_img_load(const char* path, void *out_buffer, size_t buffer_size, int des
 // [Supported format]
 // PBM, PGM, PPM (Both ASCII and RAW/Binary):
 // 	Pixels with a maxval other than 255 will be normalized to 0-255.	
+
+int lev_img_write_ppm(const char *path, const void *buffer, size_t width, size_t height, int channels);  
+// Writes pixel data into PPM(binary) image file.
+// Memory layout has to be RGBA order if channels per pixel is 4. 
+// Specify the number of channels per pixel in your memory layout to 'channels', then this function converts
+// 	the number of channels to 3, which is the specification of ppm file format. 
 
 // ============================================================================
 // 2D Drawing 
