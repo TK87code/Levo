@@ -204,6 +204,10 @@ const char *lev_cli_parse(int argc, char *argv[],	// argc & argv from main
 // Return the bigger value among two variables.
 // Usage: LEV_MAX(x, y);
 
+#define LEV_CLAMP(a, min, max) do { if (a < min) a = min; if (a > max) a = max; } while (0)
+// Clamp the value inside of min and max.
+// Usage: LEV_CLAMP(x, 10, 20);
+
 int lev_rand(uint32_t *seed, int min, int max);
 // Generates a pseudo-random integer in the range [min, max] (inclusive).
 // Updates the given 32-bit 'seed' state on each call.

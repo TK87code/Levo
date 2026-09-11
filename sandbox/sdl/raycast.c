@@ -78,11 +78,36 @@ struct state {
 	SDL_Texture *texture;
 	uint32_t *pixels;
 	float ticks_lastframe;
+	uint32_t wall_tile[TILE_SIZE * TILE_SIZE];	
 };
 
 static int sdl_setup(struct state *s);
 static void sdl_cleanup(struct state *s);
 static void main_loop(struct state *s);
+
+static void create_wall_tile(struct state *s)
+{
+	uint32_t *buffer = s->wall_tile;
+	lev_draw_fill(buffer, TILE_SIZE, TILE_SIZE, 0x8a3b1eff);
+	bool should_offset = false;
+
+	for (size_t y = 0; y < TILE_SIZE; y++) {
+		if (y % 8 == 0) {
+			lev_draw_line(buffer, TILE_SIZE, TILE_SIZE, 0, y+1, TILE_SIZE - 1, y+1,0x000000ff);
+			lev_draw_line(buffer, TILE_SIZE, TILE_SIZE, 0, y, TILE_SIZE - 1, y, 0x000000ff);
+			should_offset = (should_offset) ? false : true;
+
+			for (size_t x = 0; x < TILE_SIZE; x++) {
+				if (x % 16 == 0) {
+					if (should_offset) 
+						lev_draw_line(buffer, TILE_SIZE, TILE_SIZE, x + 8, y, x + 8, y + 8, 0x000000ff);
+					else 
+						lev_draw_line(buffer, TILE_SIZE, TILE_SIZE, x, y, x, y + 8, 0x000000ff);
+				}
+			}
+		}
+	}
+}
 
 void move_player(struct state *s, float dt) 
 {
@@ -257,6 +282,28 @@ void render_player(struct state *s)
 			0xee0000ff);
 }
 
+static uint32_t apply_shading(uint32_t color, float distance) 
+{
+	uint8_t a = (color >> (8 * 3)) & 0xff;
+	uint8_t b = (color >> (8 * 2)) & 0xff;
+	uint8_t g = (color >> (8 * 1)) & 0xff;
+	uint8_t r = color & 0xff;
+	
+	float max_distance = TILE_SIZE * 6.0f;
+	float dist_ratio = distance / max_distance;
+	float intensity = 1.0f - dist_ratio * dist_ratio;
+			
+	LEV_CLAMP(intensity, 0.0f, 1.0f);
+
+	r = (uint8_t)(r * intensity);
+	g = (uint8_t)(g * intensity);
+	b = (uint8_t)(b * intensity);
+
+	uint32_t final_color = ((uint32_t)a << (8 * 3)) | ((uint32_t)b << (8 * 2)) | ((uint32_t)g << (8 * 1)) | (uint32_t)r;
+
+	return final_color; 
+}
+
 void render_walls(struct state *s)
 {
 	float projection_distance = (RES_WIDTH / 2) / tan(FOV_ANGLE/2) ;
@@ -268,8 +315,24 @@ void render_walls(struct state *s)
 		
 		int wall_top = (RES_HEIGHT / 2) - ((int)projected_wall_height / 2);
 		int wall_bottom = (RES_HEIGHT / 2) + ((int)projected_wall_height / 2);
-		uint32_t color = (s->rays.is_hit_vertwall[i]) ? 0xffffffff : 0xddddddff;
-		lev_draw_line(s->pixels, RES_WIDTH, RES_HEIGHT, i, wall_top, i, wall_bottom, color);
+
+		int draw_start = (wall_top < 0) ? 0 : wall_top;
+		int draw_end = (wall_bottom >= RES_HEIGHT) ? RES_HEIGHT - 1 : wall_bottom;
+
+		int tex_x = (s->rays.is_hit_vertwall[i]) ? (int)s->rays.wallhit_y[i] % TILE_SIZE : (int)s->rays.wallhit_x[i] % TILE_SIZE;
+
+		float step = (float)TILE_SIZE / projected_wall_height;
+		// Added halfpixel offset to tackle zittering at the middle of tile
+		float tex_pos = (draw_start + 0.5f - (RES_HEIGHT / 2.0f) + (projected_wall_height / 2.0f)) * step;
+
+		for (int y = draw_start; y <= draw_end; y++) {
+			int tex_y = (int)tex_pos;
+			tex_y = (tex_y > TILE_SIZE - 1) ? TILE_SIZE - 1 : tex_y;
+			tex_y = (tex_y < 0) ? 0 : tex_y;
+			tex_pos += step;
+			uint32_t color = s->wall_tile[tex_y * TILE_SIZE + tex_x];
+			s->pixels[y * RES_WIDTH + i] = apply_shading(color, distance_to_wall);
+		}
 	}
 }
 
@@ -283,11 +346,13 @@ int main(int argc, char *argv[])
 	s.p.r = 10;
 	s.p.rotation_angle = PI / 2;
 	s.p.walk_speed = TILE_SIZE * 3;
-	s.p.turn_speed = TILE_SIZE * 3 * (PI / 180);
+	s.p.turn_speed = TILE_SIZE * 2 * (PI / 180);
 
 	s.pixels = malloc(RES_WIDTH * RES_HEIGHT * sizeof(uint32_t)); 
 	if (!s.pixels)
 		goto cleanup;
+
+	create_wall_tile(&s);
 
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 		goto cleanup;
@@ -373,8 +438,8 @@ static void main_loop(struct state *s)
 		move_player(s, dt);
 		update_rays(s);
 
-		lev_draw_fill(s->pixels, RES_WIDTH, RES_HEIGHT, 0x808080ff);
-		lev_draw_rect(s->pixels, RES_WIDTH, RES_HEIGHT, 0, 0, RES_WIDTH, RES_HEIGHT / 2, 0x5d5d5dff);
+		lev_draw_fill(s->pixels, RES_WIDTH, RES_HEIGHT, 0x000000ff);
+		//lev_draw_rect(s->pixels, RES_WIDTH, RES_HEIGHT, 0, 0, RES_WIDTH, RES_HEIGHT / 2, 0x000000ff);
 		render_walls(s);
 		render_map(s);
 		render_rays(s);
