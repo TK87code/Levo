@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-//#define RETRO
+#define RETRO
 
 #define PI 3.14159265
 

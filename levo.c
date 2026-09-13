@@ -523,6 +523,67 @@ int lev_draw_ring(void *buffer, size_t buf_w, size_t buf_h, int x, int y, int r,
 	return _lev_draw_circle_core(buffer, buf_w, buf_h, x, y, r, r - thickness, color);
 }
 
+int lev_draw_tri(void *buffer, size_t buf_w, size_t buf_h, int x1, int y1, int x2, int y2, int x3, int y3, uint32_t color)
+{
+	if (!buffer || buf_w == 0 || buf_h == 0)
+		return LEV_ERR_INVALID;
+
+	uint8_t *buf = (uint8_t *)buffer;
+	uint8_t r,g,b,a;
+	_lev_draw_get_rgba(color, &r, &g, &b, &a);
+	
+	if (y1 > y2) {
+		LEV_SWAP(int, y1, y2);
+		LEV_SWAP(int, x1, x2);
+	}
+	if (y2 > y3) {
+		LEV_SWAP(int, y2, y3);
+		LEV_SWAP(int, x2, x3);
+	}
+	if (y1 > y2) {
+		LEV_SWAP(int, y1, y2);
+		LEV_SWAP(int, x1, x2);
+	}
+
+	float dx_1to2 = x2 - x1;
+	float dy_1to2 = y2 - y1;
+	float xstep_1to2 = (dy_1to2 != 0) ? dx_1to2 / dy_1to2 : 0;
+	
+	float dx_1to3 = x3 - x1;
+	float dy_1to3 = y3 - y1;
+	float xstep_1to3 = (dy_1to3 != 0) ? dx_1to3 / dy_1to3 : 0;
+	
+	float dx_2to3 = x3 - x2;
+	float dy_2to3 = y3 - y2;
+	float xstep_2to3 = (dy_2to3 != 0) ? dx_2to3 / dy_2to3 : 0;
+
+	float x_1to2 = x1;
+	float x_1to3 = x1;
+	
+	for (int y = y1; y < y2; y++) {
+		int start = x_1to2, end = x_1to3;
+		if (start > end)  
+			LEV_SWAP(int, start, end);
+		for (int x = start; x <= end; x++) 
+			_lev_draw_put_pixel(buf, buf_w, buf_h, x, y, r, g, b, a);
+		x_1to2 += xstep_1to2;
+		x_1to3 += xstep_1to3;
+	}
+	
+	float x_2to3 = x2;
+	
+	for (int y = y2; y <= y3; y++) {
+		int start = x_2to3, end = x_1to3;
+		if (start > end)  
+			LEV_SWAP(int, start, end);
+		for (int x = start; x <= end; x++) 
+			_lev_draw_put_pixel(buf, buf_w, buf_h, x, y, r, g, b, a);
+		x_2to3 += xstep_2to3;
+		x_1to3 += xstep_1to3;
+	}
+
+	return 0;
+}
 
 // ===========================================================================
 // String Processing

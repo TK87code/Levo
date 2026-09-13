@@ -20,6 +20,7 @@
 //  lev_draw_line()		- Draw a line with color
 //  lev_draw_circle()		- Draw a circle with color 
 //  lev_draw_ring()		- Draw a ring with color
+//  lev_draw_tri()		- Draw a triangle with color
 //
 //  			[ String Processing ] (lev_str_xx)
 //
@@ -40,6 +41,8 @@
 //
 //  LEV_SWAP()			- Swap the value of two variables
 //  LEV_MAX()			- Return max value of two variables
+//  LEV_MIN()			- Return min value of two variables
+//  LEV_CLAMP()			- Clamp the value within min and max
 //  lev_rand()                	- Generate a pseudo-random integer
 //  lev_distance_sq()		- Get distance of two coordinates
 //  lev_read_stdin()          	- Read stdin until a specified terminator or EOF
@@ -147,6 +150,12 @@ int lev_draw_ring(void *buffer, size_t buf_w, size_t buf_h, // Data of the buffe
 // Draws a ring (circle without filling) at specified coordinates.
 // Return 0 on success, or negative error code on failure.
 
+int lev_draw_tri(void *buffer, size_t buf_w, size_t buf_h,	// Data of the buffer storing pixels
+		 int x1, int y1, int x2, int y2, int x3, int y3,// Coordinates that consist the triangle 
+		 uint32_t color);				// Color need to be RGBA order (e.g., Solid red ->0xff0000ff)
+// Draws a triangle with color.
+// Return 0 on success, or negative error code on failure.
+
 // ============================================================================
 // String Processing 
 // ============================================================================
@@ -203,6 +212,10 @@ const char *lev_cli_parse(int argc, char *argv[],	// argc & argv from main
 #define LEV_MAX(a, b) ((a) > (b) ? (a) : (b))
 // Return the bigger value among two variables.
 // Usage: LEV_MAX(x, y);
+
+#define LEV_MIN(a, b) ((a) < (b) ? (a) : (b))
+// Return the smaller value amount two variables.
+// Usage: LEV_MIN(x, y);
 
 #define LEV_CLAMP(a, min, max) do { if (a < min) a = min; if (a > max) a = max; } while (0)
 // Clamp the value inside of min and max.
